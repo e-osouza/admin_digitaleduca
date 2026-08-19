@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+/*
+  Design system do painel administrativo.
+
+  Os tokens são os MESMOS nomes e valores da plataforma do aluno
+  (`new_digitaleduca/src/app/globals.css`) — os dois produtos são a mesma
+  marca, e manter os nomes iguais deixa componente portátil entre eles.
+
+  A diferença é de densidade, não de cor: o painel é ferramenta de trabalho,
+  com tabelas e formulários longos, então a escala tipográfica é menor e o
+  espaçamento mais apertado que o da plataforma.
+
+  O tema CLARO é o padrão; o escuro entra por `data-tema="escuro"` no <html>.
+  Nenhuma cor é declarada só de um lado.
+*/
+@theme {
+  --color-fundo: #f4f8fb;
+  --color-fundo-2: #eaf1f8;
+  /* Cromo = bordas da aplicação (menu lateral, barra superior). */
+  --color-cromo: #ffffff;
+  --color-brand: #00324e;
+  --color-superficie: #ffffff;
+  --color-superficie-2: #eef4f9;
+  --color-borda: #c3d5e4;
+  --color-borda-suave: #dfe9f2;
+
+  --color-texto: #08192a;
+  --color-texto-2: #33546f;
+  --color-texto-3: #5c7186;
+
+  --color-acento: #00324e;
+  --color-acento-hover: #004166;
+  --color-acento-claro: #0072b2;
+
+  --color-sucesso: #067a5e;
+  --color-alerta: #c0392f;
+  /*
+    Aviso não existe na plataforma do aluno: é específico do painel, para
+    ações reversíveis mas de impacto (despublicar trilha, desativar cupom).
+    Âmbar escurecido até passar 4,5:1 no fundo claro.
+  */
+  --color-aviso: #8a5a00;
+
+  /*
+    Curvas de animação — as mesmas da plataforma do aluno. `saida` desacelera
+    forte no fim: é o que faz o marcador do menu "assentar" no item em vez de
+    parar seco.
+  */
+  --ease-saida: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-suave: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /*
+    Paleta categórica dos gráficos.
+    
+    Não são tons decorativos: a ORDEM é o mecanismo de segurança para daltonismo.
+    Foi validada com o script do skill de dataviz contra a superfície branca
+    (#ffffff) — ΔE CVD mínimo de 9,1 entre pares adjacentes e ΔE de visão normal
+    de 19,6, ambos acima do piso. Trocar um degrau ou reordenar exige revalidar.
+
+    O slot 1 é o azul da marca, para os gráficos pertencerem ao painel.
+    Três slots ficam abaixo de 3:1 no fundo claro, então vale a regra de alívio:
+    todo gráfico traz rótulo visível ou tabela — nunca só cor.
+  */
+  --color-serie-1: #0072b2;
+  --color-serie-2: #eb6834;
+  --color-serie-3: #1baf7a;
+  --color-serie-4: #eda100;
+  --color-serie-5: #e87ba4;
+
+  /*
+    Rampa sequencial — para escala ORDENADA, não para identidade.
+    Nota 1 → 5, mais claro a mais escuro: a ordem vira luminosidade, que é o
+    que a paleta categórica não consegue expressar (lá as cores são iguais
+    entre si de propósito).
+
+    Um só matiz, luminosidade estritamente decrescente. Os dois degraus mais
+    claros ficam abaixo de 3:1 no branco — vale a regra de alívio: rótulo
+    visível e tabela, nunca só cor.
+  */
+  --color-rampa-1: #9ec5f4;
+  --color-rampa-2: #6da7ec;
+  --color-rampa-3: #3987e5;
+  --color-rampa-4: #1c5cab;
+  --color-rampa-5: #0d366b;
+
+  /* Grade e eixos recuados: o dado manda, a moldura não disputa. */
+  --color-grade: #dfe9f2;
+}
+
+[data-tema="escuro"] {
+  --color-fundo: #04121d;
+  --color-fundo-2: #0a0f18;
+  --color-cromo: #0a0f18;
+  --color-superficie: #141e30;
+  --color-superficie-2: #1a3848;
+  --color-borda: #205d75;
+  --color-borda-suave: #15344e;
+
+  --color-texto: #edf6ff;
+  --color-texto-2: #c7d7e7;
+  --color-texto-3: #8b9bab;
+
+  --color-acento: #0093e6;
+  --color-acento-hover: #27a9f1;
+  --color-acento-claro: #7dc2e8;
+
+  --color-sucesso: #03a982;
+  --color-alerta: #e0574f;
+  --color-aviso: #e0a530;
+
+  /*
+    Degraus próprios para o fundo escuro (#141e30) — não é inversão automática
+    da paleta clara. Validados como conjunto: contraste ≥ 3:1 em todos, ΔE CVD
+    mínimo 8,4.
+  */
+  --color-serie-1: #0093e6;
+  --color-serie-2: #d95926;
+  --color-serie-3: #199e70;
+  --color-serie-4: #c98500;
+  --color-serie-5: #d55181;
+
+  /*
+    No escuro a rampa inverte o sentido — no fundo escuro é o CLARO que avança.
+    A ordem continua sendo lida por luminosidade, e todos os degraus passam de
+    3:1 contra #141e30.
+  */
+  --color-rampa-1: #256abf;
+  --color-rampa-2: #3987e5;
+  --color-rampa-3: #5598e7;
+  --color-rampa-4: #86b6ef;
+  --color-rampa-5: #cde2fb;
+
+  --color-grade: #15344e;
+}
+
+/* Permite estilos pontuais por tema, ex.: trocar o arquivo do logotipo. */
+@custom-variant escuro (&:where([data-tema="escuro"] *));
+
+html {
+  color-scheme: light;
+}
+
+[data-tema="escuro"] {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Trava a rolagem de fundo enquanto a gaveta do menu está aberta. */
+body[data-gaveta="aberta"] {
+  overflow: hidden;
+}
+
+@layer base {
+  /* No toque, o realce cinza padrão do iOS/Android atrapalha o design. */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+    Cursor de mão em tudo que é clicável.
+
+    O preflight do Tailwind v4 passou a aplicar `cursor: default` em botões —
+    é mudança deliberada deles, alinhada ao padrão do HTML, mas quebra a
+    expectativa de quem usa a interface. Restauramos aqui, num lugar só, para
+    valer em todo componente que vier depois sem precisar lembrar da classe.
+
+    `:disabled` fica de fora: ali o cursor padrão do navegador já comunica que
+    não há ação. Também não forçamos nada em `[aria-disabled]` — é o caso dos
+    itens de menu ainda não implementados, que são <span> e não devem parecer
+    clicáveis.
+
+    `a` sem `href` não é link (é âncora nomeada), por isso o seletor exige o
+    atributo.
+  */
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  /*
+    Foco visível em tudo que recebe teclado. O painel é operado por gente que
+    passa o dia nele — navegação por Tab precisa funcionar de verdade.
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-acento-claro);
+    outline-offset: 2px;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+}

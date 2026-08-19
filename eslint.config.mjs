@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Trechos preparados para o backend NestJS — não fazem parte deste app.
+    "patch-backend/**",
   ]),
 ]);
 

@@ -1,0 +1,344 @@
+import "server-only";
+import { api, apiOpcional } from "@/lib/api";
+import type {
+  AlcancePush,
+  Categoria,
+  ConteudoAdmin,
+  ConteudoBusca,
+  Envelope,
+  EstatisticasPlataforma,
+  Instrutor,
+  ListaPaginada,
+  Plano,
+  Propaganda,
+  ResumoAssinaturas,
+  ResumoUsuarios,
+  ResumoVideos,
+  Subcategoria,
+  Tag,
+  Trilha,
+  UsuarioAdmin,
+  UsuarioDetalhe,
+  TrilhaDetalhe,
+} from "@/types/api";
+
+/* ---------------- dashboard (token estático) ---------------- */
+
+export function resumoUsuarios() {
+  return apiOpcional<ResumoUsuarios>("/dashboard/usuarios", {
+    auth: "dashboard",
+    revalidar: 300,
+  });
+}
+
+export function resumoAssinaturas() {
+  return apiOpcional<ResumoAssinaturas>("/dashboard/assinaturas", {
+    auth: "dashboard",
+    revalidar: 300,
+  });
+}
+
+export function resumoVideos() {
+  return apiOpcional<ResumoVideos>("/dashboard/videos", {
+    auth: "dashboard",
+    revalidar: 300,
+  });
+}
+
+/**
+ * Agregações da tela de estatísticas.
+ *
+ * Cache de 5 minutos por recorte: são 17 agregações sobre as tabelas de
+ * progresso, caras demais para refazer a cada F5, e não é dado que se lê ao
+ * segundo. Chaves diferentes de `de`/`ate` viram entradas diferentes no cache,
+ * então trocar o período não devolve o número do período anterior.
+ */
+export function obterEstatisticas(de?: string, ate?: string) {
+  const busca = new URLSearchParams();
+  if (de) busca.set("de", de);
+  if (ate) busca.set("ate", ate);
+  const query = busca.size ? `?${busca}` : "";
+
+  return apiOpcional<EstatisticasPlataforma>(`/dashboard/estatisticas${query}`, {
+    auth: "dashboard",
+    revalidar: 300,
+  });
+}
+
+/* ---------------- catálogo de apoio ---------------- */
+
+/**
+ * Planos do painel — inclui os desativados.
+ *
+ * `/planos/todos` e não `/planos`: a rota pública esconde plano desativado,
+ * que é justamente o que o painel precisa enxergar para poder reativá-lo.
+ * Ativos vêm primeiro, depois por preço.
+ */
+export function listarPlanos() {
+  return api<Plano[]>("/planos/todos", { auth: "jwt", revalidar: 60 });
+}
+
+/**
+ * Um plano pelo id.
+ *
+ * A API não expõe `GET /planos/:id` — só a listagem inteira. Filtrar aqui é
+ * barato (são três planos) e evita um endpoint novo no backend só para isto;
+ * se um dia a lista crescer a ponto de doer, aí vale criar a rota.
+ */
+export async function obterPlano(id: number) {
+  const planos = await listarPlanos();
+  return planos.find((plano) => plano.id === id) ?? null;
+}
+
+/* ---------------- conteúdos ---------------- */
+
+/** Teto imposto pelo backend em `/conteudos/search`. */
+export const LIMITE_MAXIMO_BUSCA = 24;
+
+export type FiltrosConteudo = {
+  q?: string;
+  tipo?: string;
+  categoriaId?: number;
+  subcategoriaId?: number;
+  page?: number;
+  limit?: number;
+};
+
+/**
+ * Grid administrativo de conteúdos.
+ *
+ * Usa `/conteudos/search` e não `/conteudos` porque só ele filtra por
+ * categoria, subcategoria e texto. O preço é não receber duração nem nota —
+ * nenhum dos dois aparece na listagem.
+ *
+ * `destaque` NÃO é filtrável aqui: o endpoint ignora o parâmetro (confirmado
+ * na API). O campo vem no retorno e é exibido como selo em cada linha.
+ */
+export function buscarConteudos(filtros: FiltrosConteudo) {
+  const busca = new URLSearchParams();
+  if (filtros.q) busca.set("q", filtros.q);
+  if (filtros.tipo) busca.set("tipo", filtros.tipo);
+  if (filtros.categoriaId) busca.set("categoriaId", String(filtros.categoriaId));
+  if (filtros.subcategoriaId) {
+    busca.set("subcategoriaId", String(filtros.subcategoriaId));
+  }
+  busca.set("page", String(filtros.page ?? 1));
+  busca.set("limit", String(filtros.limit ?? LIMITE_MAXIMO_BUSCA));
+
+  return api<ListaPaginada<ConteudoBusca>>(`/conteudos/search?${busca}`, {
+    auth: "jwt",
+    revalidar: false,
+  });
+}
+
+/* ---------------- taxonomia ---------------- */
+
+export function listarCategorias() {
+  return api<Categoria[]>("/categorias/list", {
+    auth: "publica",
+    revalidar: 300,
+  });
+}
+
+export function listarSubcategorias() {
+  return api<Subcategoria[]>("/subcategorias/list", {
+    auth: "publica",
+    revalidar: 300,
+  });
+}
+
+/**
+ * Detalhe para edição. Usa a rota `/admin` e não `/conteudos/{id}`: a pública
+ * passa por `EmailVerifiedGuard` e recusaria um admin com e-mail não
+ * confirmado — que é justamente o caso da conta `superadmin@example.com`.
+ */
+export function obterConteudoAdmin(id: number) {
+  return api<ConteudoAdmin>(`/conteudos/${id}/admin`, {
+    auth: "jwt",
+    revalidar: false,
+  });
+}
+
+export function listarInstrutores() {
+  return api<Instrutor[]>("/instrutor", { auth: "jwt", revalidar: 300 });
+}
+
+/**
+ * Nomes de tag já usados, para autocompletar.
+ *
+ * Filtra os puramente numéricos: 523 das 535 tags do banco têm o ID como nome,
+ * resquício do painel antigo, que enviava IDs onde a API espera nomes (o
+ * `connectOrCreate` então criava uma tag chamada "7"). Sugerir esse lixo
+ * perpetuaria o problema.
+ */
+export async function listarNomesDeTags() {
+  const tags = await api<Tag[]>("/tags", { auth: "publica", revalidar: 300 });
+  return tags
+    .map((tag) => tag.nome)
+    .filter((nome) => !/^\d+$/.test(nome.trim()))
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+/** Link reproduzível de um vídeo do Vimeo — usado para pré-visualizar. */
+export function obterLinkVideo(vimeoId: string) {
+  return apiOpcional<{
+    url: string;
+    sources?: { id: string; type: string; url: string; quality?: string }[];
+  }>(`/vimeo-client/video/${vimeoId}/link`, { auth: "jwt", revalidar: false });
+}
+
+/* ---------------- taxonomia ---------------- */
+
+export function listarTags() {
+  return api<Tag[]>("/tags", { auth: "publica", revalidar: 60 });
+}
+
+/**
+ * Categorias com quantos conteúdos cada uma tem.
+ *
+ * A API não devolve essa contagem em `/categorias/list`, e ela é essencial:
+ * `Conteudo.categoria` é uma FK sem cascata, então excluir uma categoria em
+ * uso simplesmente falha. Mostrar o número antes evita a tentativa frustrada.
+ *
+ * Uma chamada por categoria, pedindo `limit=1` e lendo só o total. São poucas
+ * categorias e a resposta é cacheada.
+ */
+export async function listarCategoriasComUso() {
+  const categorias = await listarCategorias();
+
+  return Promise.all(
+    categorias.map(async (categoria) => {
+      const busca = await apiOpcional<ListaPaginada<unknown>>(
+        `/conteudos/search?categoriaId=${categoria.id}&page=1&limit=1`,
+        { auth: "jwt", revalidar: 60 },
+      );
+
+      return { ...categoria, conteudos: busca?.pagination.total ?? 0 };
+    }),
+  );
+}
+
+/* ---------------- instrutores ---------------- */
+
+/**
+ * Instrutores com quantos conteúdos cada um tem.
+ *
+ * `GET /instrutor` traz todos, mas sem contagem. `GET /instrutor/lista` traz a
+ * contagem, mas só de quem JÁ tem conteúdo. Cruzamos os dois: a lista completa
+ * manda, e quem não aparece na segunda fica com zero.
+ */
+export async function listarInstrutoresComUso() {
+  const [todos, comConteudo] = await Promise.all([
+    listarInstrutores(),
+    apiOpcional<Instrutor[]>("/instrutor/lista?limit=500", {
+      auth: "publica",
+      revalidar: 60,
+    }),
+  ]);
+
+  const usoPorId = new Map(
+    (comConteudo ?? []).map((i) => [i.id, i.totalConteudos ?? 0]),
+  );
+
+  return todos.map((instrutor) => ({
+    ...instrutor,
+    totalConteudos: usoPorId.get(instrutor.id) ?? 0,
+  }));
+}
+
+/* ---------------- trilhas ---------------- */
+
+/** Todas as trilhas, inclusive rascunhos. Só SUPERADMIN. */
+export async function listarTrilhas() {
+  const resposta = await api<Envelope<Trilha>>("/trilhas/admin/all", {
+    auth: "jwt",
+    revalidar: false,
+  });
+  return resposta.data;
+}
+
+export function obterTrilha(id: number) {
+  return api<TrilhaDetalhe>(`/trilhas/${id}`, { auth: "jwt", revalidar: false });
+}
+
+/**
+ * Todos os conteúdos, para montar a trilha.
+ *
+ * `/conteudos/search` limita a 24 por página, então paginamos até o fim. São
+ * ~4 requisições para o acervo atual, todas cacheadas — melhor que usar
+ * `/conteudos`, que traz vídeos, módulos e instrutores de cada item e pesaria
+ * dezenas de vezes mais.
+ */
+export async function listarConteudosParaTrilha() {
+  const itens: ConteudoBusca[] = [];
+  let pagina = 1;
+  let totalPaginas = 1;
+
+  do {
+    const resposta = await api<ListaPaginada<ConteudoBusca>>(
+      `/conteudos/search?page=${pagina}&limit=${LIMITE_MAXIMO_BUSCA}`,
+      { auth: "jwt", revalidar: 120 },
+    );
+    itens.push(...resposta.data);
+    totalPaginas = resposta.pagination.totalPages;
+    pagina += 1;
+    // Trava de segurança: um totalPages absurdo não pode virar laço infinito.
+  } while (pagina <= totalPaginas && pagina <= 40);
+
+  return itens;
+}
+
+/* ---------------- usuários ---------------- */
+
+export const LIMITE_USUARIOS = 25;
+
+export function listarUsuarios(filtros: { q?: string; page?: number }) {
+  const busca = new URLSearchParams();
+  if (filtros.q) busca.set("q", filtros.q);
+  busca.set("page", String(filtros.page ?? 1));
+  busca.set("limit", String(LIMITE_USUARIOS));
+
+  return api<ListaPaginada<UsuarioAdmin>>(
+    `/usuario/admin/usuarios?${busca}`,
+    { auth: "jwt", revalidar: false },
+  );
+}
+
+/** Detalhe completo de um usuário, para a tela de edição. */
+export function obterUsuario(id: number) {
+  return api<UsuarioDetalhe>(`/usuario/admin/usuarios/${id}`, {
+    auth: "jwt",
+    revalidar: false,
+  });
+}
+
+/* ---------------- propagandas ---------------- */
+
+/** Todas, inclusive as inativas. Já vem na ordem de exibição. */
+export function listarPropagandas() {
+  return api<Propaganda[]>("/propagandas/admin/all", {
+    auth: "jwt",
+    revalidar: false,
+  });
+}
+
+/**
+ * Uma propaganda pelo id.
+ *
+ * A API não tem rota de detalhe — só a listagem. Como são poucos banners e a
+ * listagem já é enxuta, filtrar aqui evita um endpoint novo no backend só
+ * para isso.
+ */
+export async function obterPropaganda(id: number) {
+  const todas = await listarPropagandas();
+  return todas.find((p) => p.id === id) ?? null;
+}
+
+/* ---------------- notificações ---------------- */
+
+export function obterAlcancePush() {
+  return api<AlcancePush>("/notificacoes/alcance", {
+    auth: "jwt",
+    revalidar: false,
+  });
+}

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# patch preparado para o backend (nao faz parte do app)
+patch-backend/

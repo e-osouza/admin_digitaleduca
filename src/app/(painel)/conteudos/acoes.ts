@@ -1,0 +1,255 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { API_URL } from "@/lib/api";
+import { lerToken } from "@/lib/session";
+
+export type Resultado =
+  | { ok: true; id: number; vimeoUploadLink?: string }
+  | { ok: false; erro: string };
+
+/**
+ * Campos de texto aceitos pela API. Enviar qualquer coisa fora desta lista
+ * derruba a edição com 400: `PUT /conteudos/:id` roda sob a validação estrita
+ * global (`whitelist + forbidNonWhitelisted`).
+ *
+ * Curiosidade que NÃO deve virar hábito: `POST /conteudos/create` tem um
+ * `ValidationPipe` local com `whitelist: false`, então lá campo extra passa em
+ * silêncio. Filtramos nos dois para o comportamento ser o mesmo.
+ */
+const CAMPOS_TEXTO = [
+  "titulo",
+  "descricao",
+  "categoriaId",
+  "subcategoriaId",
+  "tipo",
+  "destaque",
+  "level",
+  "aprendizagem",
+  "requisitos",
+  "gratuitoTipo",
+  "gratuitoAte",
+  "apresentador",
+  "publicado",
+] as const;
+
+/** Arrays viajam como JSON string no multipart — o backend faz `JSON.parse`. */
+const CAMPOS_JSON = ["tags", "instrutorIds", "convidadoIds"] as const;
+
+const ARQUIVOS = [
+  "thumbnailDesktop",
+  "thumbnailMobile",
+  "thumbnailDestaque",
+] as const;
+
+function montarCorpo(entrada: FormData): FormData {
+  const corpo = new FormData();
+
+  for (const campo of CAMPOS_TEXTO) {
+    const valor = entrada.get(campo);
+    if (typeof valor === "string" && valor !== "") corpo.set(campo, valor);
+  }
+
+  for (const campo of CAMPOS_JSON) {
+    const valor = entrada.get(campo);
+    if (typeof valor === "string" && valor !== "") corpo.set(campo, valor);
+  }
+
+  /*
+   * `apresentadorId` é enviado separado porque só faz sentido em podcast e,
+   * vazio, precisa sumir do corpo: o backend trata `!= null` como "quis
+   * definir" e recriaria os vínculos sem apresentador.
+   */
+  const apresentador = entrada.get("apresentadorId");
+  if (typeof apresentador === "string" && apresentador !== "") {
+    corpo.set("apresentadorId", apresentador);
+  }
+
+  for (const campo of ARQUIVOS) {
+    const arquivo = entrada.get(campo);
+    if (arquivo instanceof File && arquivo.size > 0) corpo.set(campo, arquivo);
+  }
+
+  return corpo;
+}
+
+async function mensagemDeErro(resposta: Response): Promise<string> {
+  try {
+    const corpo = (await resposta.json()) as { message?: string | string[] };
+    if (Array.isArray(corpo.message)) return corpo.message.join(", ");
+    if (corpo.message) return corpo.message;
+  } catch {
+    // resposta sem JSON — cai no texto padrão
+  }
+  return `A API respondeu ${resposta.status}.`;
+}
+
+/**
+ * Cria o conteúdo e devolve o link de upload do Vimeo.
+ *
+ * O vídeo NÃO passa por aqui. A API só precisa do tamanho em bytes para abrir
+ * o ticket tus; o arquivo sobe direto do browser para o Vimeo, sem trafegar
+ * pelo nosso servidor.
+ */
+export async function criarConteudo(entrada: FormData): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const corpo = montarCorpo(entrada);
+
+  const fileSize = entrada.get("fileSize");
+  if (typeof fileSize !== "string" || Number(fileSize) <= 0) {
+    return { ok: false, erro: "Selecione o vídeo introdutório." };
+  }
+  corpo.set("fileSize", fileSize);
+
+  /*
+   * Obrigatório no DTO de criação. O formulário manda `yyyy-MM-dd`; a API
+   * espera string de data, então normalizamos para ISO completo. Sem escolha,
+   * o conteúdo nasce com a data de agora.
+   *
+   * Não existe no DTO de atualização — por isso só aparece aqui.
+   */
+  const dataEscolhida = entrada.get("dataCriacao");
+  corpo.set(
+    "dataCriacao",
+    typeof dataEscolhida === "string" && dataEscolhida
+      ? new Date(`${dataEscolhida}T12:00:00`).toISOString()
+      : new Date().toISOString(),
+  );
+
+  const resposta = await fetch(`${API_URL}/conteudos/create`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: corpo,
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  const criado = (await resposta.json()) as {
+    conteudo?: { id?: number };
+    vimeoUploadLink?: string;
+  };
+
+  if (!criado.conteudo?.id) {
+    return { ok: false, erro: "A API não devolveu o conteúdo criado." };
+  }
+
+  revalidatePath("/conteudos");
+
+  return {
+    ok: true,
+    id: criado.conteudo.id,
+    vimeoUploadLink: criado.vimeoUploadLink,
+  };
+}
+
+/**
+ * Atualiza o conteúdo.
+ *
+ * Atenção a uma regra do backend: se QUALQUER campo de pessoas
+ * (`instrutorIds`, `apresentadorId`, `convidadoIds`) vier no corpo, ele apaga
+ * todos os vínculos e recria só com o que foi enviado. O formulário sempre
+ * manda os três juntos — mandar um só apagaria os outros dois.
+ */
+export async function atualizarConteudo(
+  id: number,
+  entrada: FormData,
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: montarCorpo(entrada),
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath("/conteudos");
+  revalidatePath(`/conteudos/${id}/editar`);
+
+  return { ok: true, id };
+}
+
+export async function excluirConteudo(id: number): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath("/conteudos");
+  return { ok: true, id };
+}
+
+/**
+ * Abre um ticket para substituir o vídeo de um conteúdo já existente.
+ *
+ * Rota `POST /conteudos/:id/video`, adicionada ao backend em 19/08/2026 — o
+ * DTO de atualização não aceita `videoIntrodutorio`, então não havia como
+ * trocar o arquivo sem recriar o conteúdo.
+ *
+ * O vídeo antigo é apagado do Vimeo pelo backend. Como sempre, o arquivo novo
+ * não passa por aqui: sobe direto do browser para o link retornado.
+ */
+export async function trocarVideo(
+  id: number,
+  fileSize: number,
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}/video`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileSize }),
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  const dados = (await resposta.json()) as { vimeoUploadLink?: string };
+
+  revalidatePath(`/conteudos/${id}/editar`);
+  revalidatePath(`/podcasts/${id}/editar`);
+
+  return { ok: true, id, vimeoUploadLink: dados.vimeoUploadLink };
+}
+
+/**
+ * Remove o vídeo introdutório e apaga o arquivo no Vimeo.
+ *
+ * Rota `DELETE /conteudos/:id/video`, adicionada ao backend em 19/08/2026.
+ * A pasta do conteúdo e as aulas não são afetadas.
+ */
+export async function removerVideoIntrodutorio(
+  id: number,
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}/video`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath(`/conteudos/${id}/editar`);
+  revalidatePath(`/podcasts/${id}/editar`);
+
+  return { ok: true, id };
+}

@@ -1,0 +1,593 @@
+/**
+ * Tipos da API DigitalEduca usados pelo painel administrativo.
+ *
+ * Derivados do schema Prisma do backend (`digital_educa`), não da spec
+ * OpenAPI: vários DTOs não têm `@ApiProperty` e aparecem vazios no Swagger.
+ */
+
+export type TipoConteudo = "PALESTRA" | "PODCAST" | "AULA";
+export type GratuitoTipo = "NENHUM" | "PERMANENTE" | "TEMPORARIO";
+export type Role = "USER" | "SUPERADMIN" | "CORTESIA";
+export type IntervaloPlano = "day" | "week" | "month" | "year";
+export type CupomDuracao = "ONCE" | "FOREVER" | "REPEATING";
+export type PapelInstrutor = "INSTRUTOR" | "APRESENTADOR" | "CONVIDADO";
+
+/** Envelope `{ data, pagination }` de `/conteudos`, `/conteudos/search`… */
+export interface Paginacao {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListaPaginada<T> {
+  data: T[];
+  pagination: Paginacao;
+}
+
+/** Envelope `{ data }` sem paginação (`/trilhas`, `/conteudos/tipos`…). */
+export interface Envelope<T> {
+  data: T[];
+}
+
+export interface LoginResponse {
+  access_token: string;
+}
+
+export interface Categoria {
+  id: number;
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Subcategoria {
+  id: number;
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+  categorias?: {
+    categoriaId: number;
+    subcategoriaId: number;
+    categoria: Pick<Categoria, "id" | "nome">;
+  }[];
+  _count?: { conteudos: number };
+}
+
+export interface Tag {
+  id: number;
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Presente em `GET /tags` desde 19/08/2026. */
+  totalConteudos?: number;
+  totalTrilhas?: number;
+}
+
+export interface Instrutor {
+  id: number;
+  nome: string;
+  avatar: string | null;
+  formacao: string;
+  sobre?: string;
+  totalConteudos?: number;
+}
+
+export interface Video {
+  id: number;
+  titulo: string;
+  url?: string;
+  duracao: number | null;
+  moduloId?: number | null;
+  conteudoId?: number | null;
+  thumbnailUrl?: string | null;
+}
+
+export interface Modulo {
+  id: number;
+  titulo: string;
+  subtitulo?: string | null;
+  descricao?: string | null;
+  conteudoId?: number;
+  vimeoFolderUri?: string | null;
+  videos?: Video[];
+}
+
+export interface Conteudo {
+  id: number;
+  titulo: string;
+  descricao: string | null;
+  tipo: TipoConteudo;
+  level: string | null;
+  dataCriacao: string;
+  videoIntrodutorio: string | null;
+  thumbnailDesktop: string | null;
+  thumbnailMobile: string | null;
+  thumbnailDestaque: string | null;
+  destaque: boolean;
+  aprendizagem: string | null;
+  requisitos: string | null;
+  gratuitoTipo: GratuitoTipo;
+  gratuitoAte: string | null;
+  /** Rascunho quando `false`: some do app, mas continua no painel. */
+  publicado: boolean;
+  /** Nome de quem apresenta (podcast). Texto livre, não é vínculo. */
+  apresentador: string | null;
+  categoriaId: number;
+  subcategoriaId: number;
+  vimeoFolderUri: string | null;
+  createdAt: string;
+  updatedAt: string;
+  videos?: Video[];
+  modulos?: Modulo[];
+  instrutores?: { papel: PapelInstrutor; instrutor: Instrutor }[];
+}
+
+/**
+ * Retorno de `POST /conteudos/create`. O upload do vídeo NÃO passa pela API:
+ * o backend abre um ticket tus no Vimeo e devolve o link para o browser
+ * enviar o arquivo direto.
+ */
+export interface ConteudoCriado {
+  conteudo: Conteudo;
+  vimeoUploadLink: string;
+}
+
+export interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  celular: string | null;
+  avatar: string | null;
+  role: Role;
+  emailVerified: boolean;
+  cargo?: string | null;
+  funcao?: string | null;
+  areaAtuacao?: string | null;
+  tempoExperiencia?: string | null;
+  objetivoPlataforma?: string | null;
+  formatoAprendizado?: string | null;
+  aceitaNotificacoes?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Plano {
+  id: number;
+  nome: string;
+  preco: number;
+  descricao: string | null;
+  intervalo: IntervaloPlano | null;
+  priceId: string | null;
+  stripeProductId: string | null;
+  permiteParcelamento: boolean;
+  maxParcelas: number;
+  percentualDescontoAVista: number;
+  /** `false` tira o plano do checkout sem apagá-lo. Só vem de `/planos/todos`. */
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Cupom {
+  id: number;
+  codigo: string;
+  descricao: string | null;
+  percentual: number;
+  duracao: CupomDuracao;
+  duracaoCiclos: number | null;
+  validoDe: string | null;
+  validoAte: string | null;
+  limiteUsos: number | null;
+  usosAtuais: number;
+  planoId: number | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Conteúdo dentro de uma trilha, no formato achatado que a API devolve. */
+export interface ItemTrilha {
+  ordem: number;
+  id: number;
+  titulo: string;
+  descricao: string | null;
+  tipo: TipoConteudo;
+  level: string | null;
+  gratuitoTipo: GratuitoTipo;
+  thumbnailMobile: string | null;
+  thumbnailDesktop: string | null;
+  thumbnailDestaque: string | null;
+}
+
+/**
+ * Módulo de uma trilha — agrupa CONTEÚDOS inteiros.
+ *
+ * Não confundir com `Modulo`, que pertence a um conteúdo e agrupa vídeos.
+ */
+export interface ModuloTrilha {
+  id: number;
+  titulo: string;
+  subtitulo: string | null;
+  descricao: string | null;
+  ordem: number;
+  conteudos: ItemTrilha[];
+}
+
+export interface Trilha {
+  id: number;
+  titulo: string;
+  descricao: string | null;
+  thumbnailDesktop: string | null;
+  thumbnailMobile: string | null;
+  thumbnailDestaque: string | null;
+  nivel: string | null;
+  destaque: boolean;
+  publicada: boolean;
+  totalConteudos: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrilhaDetalhe extends Trilha {
+  modulos: ModuloTrilha[];
+  /** Conteúdos que não pertencem a módulo nenhum. */
+  conteudos: ItemTrilha[];
+
+  /* Paridade com Conteudo — adicionados em 19/08/2026. */
+  categoriaId: number | null;
+  subcategoriaId: number | null;
+  categoria: { id: number; nome: string } | null;
+  subcategoria: { id: number; nome: string } | null;
+  aprendizagem: string | null;
+  requisitos: string | null;
+  gratuitoTipo: GratuitoTipo;
+  gratuitoAte: string | null;
+  dataCriacao: string;
+  videoIntrodutorio: string | null;
+  tags: Tag[];
+  instrutores: { papel: PapelInstrutor; instrutor: Instrutor }[];
+}
+
+export interface Propaganda {
+  id: number;
+  titulo: string | null;
+  imagem: string;
+  link: string;
+  /** Ausente na rota pública, que já filtra só as ativas. */
+  ativo?: boolean;
+  ordem?: number;
+  /** Abrir o link numa aba nova. */
+  novaAba?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AppConfig {
+  id: number;
+  minBuildAndroid: number;
+  minBuildIos: number;
+  storeUrlAndroid: string | null;
+  storeUrlIos: string | null;
+  mensagemUpdate: string | null;
+}
+
+/**
+ * Item devolvido por `GET /conteudos/search`.
+ *
+ * É um `select` mais enxuto que o de `GET /conteudos`: não traz vídeos,
+ * módulos, duração nem rating. Em compensação é o único com filtro por
+ * categoria, subcategoria, tags e busca textual — por isso é a fonte do grid
+ * administrativo.
+ *
+ * `instrutores` e `tags` já vêm achatados pelo backend (sem a tabela pivô).
+ */
+export interface ConteudoBusca {
+  id: number;
+  titulo: string;
+  /** Só vem para SUPERADMIN — o `search` filtra rascunho para os demais. */
+  publicado?: boolean;
+  tipo: TipoConteudo;
+  destaque: boolean;
+  thumbnailDesktop: string | null;
+  thumbnailMobile: string | null;
+  createdAt: string;
+  categoria: { id: number; nome: string } | null;
+  subcategoria: { id: number; nome: string } | null;
+  instrutores: Pick<Instrutor, "id" | "nome" | "avatar" | "formacao">[];
+  tags: { id: number; nome: string }[];
+}
+
+/**
+ * Retorno de `GET /conteudos/{id}/admin` — o objeto cru do banco com as
+ * relações completas. Diferente da versão pública, não passa por checagem de
+ * acesso nem por `EmailVerifiedGuard`.
+ */
+export interface ConteudoAdmin extends Conteudo {
+  categoria: Categoria | null;
+  subcategoria: Subcategoria | null;
+  tags: { tag: Tag }[];
+}
+
+/** Assinatura resumida, como vem na listagem administrativa de usuários. */
+export interface AssinaturaResumo {
+  id: number;
+  status: string;
+  metodoPagamento: string | null;
+  valorPago: number;
+  dataInicio: string;
+  dataFim: string | null;
+  canceladaEm: string | null;
+  plano: { id: number; nome: string } | null;
+}
+
+/**
+ * Usuário na listagem administrativa.
+ *
+ * O campo `senha` NÃO vem — o backend passou a selecionar os campos
+ * explicitamente em 19/08/2026, depois de eu descobrir que o hash bcrypt de
+ * todos os usuários estava sendo enviado ao navegador.
+ */
+export interface UsuarioAdmin {
+  id: number;
+  nome: string;
+  email: string;
+  celular: string | null;
+  avatar: string | null;
+  role: Role;
+  emailVerified: boolean;
+  cargo: string | null;
+  createdAt: string;
+  assinaturas: AssinaturaResumo[];
+}
+
+/** Detalhe completo de um usuário — `GET /usuario/admin/usuarios/:id`. */
+export interface UsuarioDetalhe {
+  id: number;
+  nome: string;
+  email: string;
+  celular: string | null;
+  avatar: string | null;
+  role: Role;
+  emailVerified: boolean;
+  stripeCustomerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+
+  cargo: string | null;
+  funcao: string | null;
+  areaAtuacao: string | null;
+  tempoExperiencia: string | null;
+  objetivoPlataforma: string | null;
+  formatoAprendizado: string | null;
+  aceitaNotificacoes: boolean;
+
+  negocio: Negocio | null;
+  interesse: Interesse | null;
+  assinaturas: (AssinaturaResumo & { cardLast4?: string | null })[];
+  dispositivos: { id: number; plataforma: string; createdAt: string }[];
+
+  atividade: {
+    videosComProgresso: number;
+    modulosComProgresso: number;
+    salvos: number;
+    listas: number;
+    avaliacoes: number;
+  };
+}
+
+/** Onboarding complementar — 1 registro por usuário. */
+export interface Negocio {
+  id: number;
+  nomeEmpresa: string;
+  setorAtuacao: string | null;
+  numeroColaboradores: string | null;
+  faixaFaturamentoAnual: string | null;
+  faseAtual: string | null;
+  desafiosNegocio: string | null;
+}
+
+export interface Interesse {
+  id: number;
+  temasAprender: string | null;
+  dificuldadeAtual: string | null;
+  nivelConhecimento: string | null;
+  tempoDisponivelSemana: string | null;
+  estiloAprendizado: string | null;
+}
+
+/** Quantos destinos o push vai atingir, por canal. */
+export interface AlcancePush {
+  mobile: number;
+  web: number;
+  total: number;
+  porPlataforma: { plataforma: string; total: number }[];
+  configurado: { mobile: boolean; web: boolean };
+}
+
+/** Resultado de um disparo — os canais são independentes. */
+export interface ResultadoPush {
+  ok: boolean;
+  sent: number;
+  reason?: string;
+  web?: { enviadas: number; removidas: number; motivo?: string };
+}
+
+/* ---------------- dashboard (token estático, não JWT) ---------------- */
+
+/*
+ * Atenção: os `schema.example` do Swagger para `/dashboard/*` estão
+ * desatualizados e não batem com o retorno real. Os tipos abaixo vêm do
+ * `dashboard.service.ts` do backend.
+ */
+
+export interface ResumoUsuarios {
+  totalUsuarios: number;
+  usuariosComAssinatura: number;
+  usuariosCancelados: number;
+  usuariosFree: number;
+}
+
+export interface ResumoAssinaturas {
+  receitaTotal: number;
+  /** Agregação bruta do Prisma (`groupBy`) — o nome do plano não vem junto. */
+  assinaturasPorPlano: { planoId: number; _count: { planoId: number } }[];
+}
+
+/** Destaque de vídeo no dashboard. `null` quando ainda não há dados. */
+export interface DestaqueVideo {
+  videoId: number | undefined;
+  titulo: string | undefined;
+  conteudo: string | null;
+  visualizacoes: number;
+  notaMedia: number | null;
+  taxaConclusao: number;
+}
+
+export interface ResumoVideos {
+  maisAssistido: DestaqueVideo | null;
+  menosAssistido: DestaqueVideo | null;
+  melhorAvaliado: DestaqueVideo | null;
+  piorAvaliado: DestaqueVideo | null;
+}
+
+/** `/dashboard/usuarios/cancelados`, `/free` e `/videos/{id}/usuarios-concluintes`. */
+export interface UsuarioResumido {
+  id: number;
+  nome: string;
+  email: string;
+  createdAt: string;
+}
+
+/** `/dashboard/usuarios/ativos` traz também a assinatura vigente. */
+export interface UsuarioAtivo extends UsuarioResumido {
+  avatar: string | null;
+  assinaturas: {
+    id: number;
+    status: string;
+    metodoPagamento: string | null;
+    valorPago: number;
+    dataInicio: string;
+    dataFim: string | null;
+    canceladaEm: string | null;
+    plano: { id: number; nome: string };
+  }[];
+}
+
+/**
+ * `GET /dashboard/estatisticas?de=&ate=` — agregações da plataforma inteira.
+ *
+ * O recorte `de`/`ate` (AAAA-MM-DD) vale só para o que é EVENTO: cadastro,
+ * assinatura, minuto assistido, avaliação. O que é ACERVO — quantos conteúdos
+ * existem, quantas assinaturas estão ativas agora — é foto do momento e ignora
+ * o recorte, porque "83 conteúdos publicados nos últimos 7 dias" seria uma
+ * leitura errada do mesmo número.
+ *
+ * `dispositivos` é o único corte que separa web de mobile: `canal` vale
+ * `android`, `ios` (tokens de push do app) ou `web` (inscrições do navegador).
+ */
+export interface EstatisticasPlataforma {
+  periodo: {
+    de: string | null;
+    ate: string | null;
+    /** Tamanho do balde das séries. Dia até ~2 meses de recorte; mês acima. */
+    granularidade: "dia" | "mes";
+    rotuloDoBalde: string;
+  };
+
+  acervo: {
+    usuarios: number;
+    conteudosPublicados: number;
+    videos: number;
+    instrutores: number;
+    assinaturasAtivas: number;
+    receitaAtiva: number;
+  };
+
+  resumo: {
+    usuariosNovos: number;
+    assinaturasNovas: number;
+    receita: number;
+    visualizacoes: number;
+    /** Usuários distintos que assistiram algo no período. */
+    espectadores: number;
+    horasAssistidas: number;
+    /** Percentual 0–100. */
+    taxaConclusao: number;
+    avaliacoes: number;
+    notaMedia: number;
+  };
+
+  /* Séries: `balde` é `AAAA-MM-DD` ou `AAAA-MM`, conforme a granularidade.
+     Baldes sem registro vêm zerados — o backend preenche as lacunas para a
+     linha não ligar dois pontos distantes e inventar uma queda suave. */
+  cadastrosPorPeriodo: { balde: string; total: number }[];
+  assinaturasPorPeriodo: { balde: string; total: number; receita: number }[];
+  horasPorPeriodo: { balde: string; horas: number; visualizacoes: number }[];
+  cancelamentosPorPeriodo: { balde: string; total: number }[];
+
+  statusAssinaturas: { status: string; total: number }[];
+  porPlano: { plano: string; total: number }[];
+
+  consumoPorTipo: {
+    tipo: string;
+    visualizacoes: number;
+    horas: number;
+    concluidos: number;
+  }[];
+  consumoPorCategoria: {
+    categoria: string;
+    visualizacoes: number;
+    horas: number;
+  }[];
+  consumoPorSubcategoria: { subcategoria: string; visualizacoes: number }[];
+
+  /** Um conteúdo com dois instrutores conta a visualização para os dois. */
+  topInstrutores: {
+    id: number;
+    instrutor: string;
+    /** Caminho relativo (`uploads/...`) ou `null`. 19 dos 79 têm foto. */
+    avatar: string | null;
+    visualizacoes: number;
+    horas: number;
+    conteudos: number;
+  }[];
+  /**
+   * Quem mais consumiu, por TEMPO assistido. Contas ADMIN/SUPERADMIN não são
+   * excluídas — `role` vem junto para o painel poder sinalizá-las.
+   */
+  topUsuarios: {
+    id: number;
+    nome: string;
+    email: string;
+    avatar: string | null;
+    role: string;
+    horas: number;
+    aulas: number;
+    concluidas: number;
+    /** ISO do progresso mais recente, ou `null`. */
+    ultimoAcesso: string | null;
+  }[];
+
+  topTags: { tag: string; visualizacoes: number }[];
+
+  topConteudos: {
+    id: number;
+    titulo: string;
+    tipo: string;
+    visualizacoes: number;
+    concluidos: number;
+    horas: number;
+  }[];
+  topAulas: {
+    id: number;
+    titulo: string;
+    conteudo: string | null;
+    visualizacoes: number;
+    horas: number;
+    concluidos: number;
+  }[];
+  maisSalvos: { id: number; titulo: string; total: number }[];
+  avaliacoesPorNota: { nota: number; total: number }[];
+  dispositivos: { canal: string; total: number }[];
+}
