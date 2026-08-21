@@ -68,10 +68,20 @@ export default async function PaginaEditarPlano({
           <h2 className="text-texto text-sm font-semibold">
             Integração antiga (Stripe)
           </h2>
+          {/*
+            O texto é específico de propósito. A versão anterior dizia que
+            estes ids serviam "para rastrear uma assinatura antiga", e isso
+            mandava a pessoa procurar no lugar errado: quem identifica uma
+            ASSINATURA é `Assinatura.stripeSubscriptionId`, outra coluna, em
+            outra tabela. Estes aqui identificam o PLANO dentro da Stripe.
+          */}
           <p className="text-texto-3 mt-1 text-sm">
-            A cobrança hoje corre pelo Mercado Pago e o painel não edita estes
-            ids — eles ficam à vista porque ainda são a chave para rastrear uma
-            assinatura antiga no painel da Stripe.
+            A cobrança hoje corre pelo Mercado Pago, e todo plano criado a
+            partir de agora nasce sem estes ids. O painel não os edita: eles
+            dizem a que produto da Stripe este plano correspondia, o que serve
+            para bater um relatório da Stripe contra os planos daqui. Para
+            investigar a cobrança de um cliente específico, o caminho é o id da
+            assinatura dele, não o do plano.
           </p>
           <dl className="mt-3 flex flex-col gap-1 text-sm">
             {plano.stripeProductId && (

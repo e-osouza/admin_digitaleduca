@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
+  atualizarPeriodoCortesia,
   atualizarUsuario,
   excluirUsuario,
 } from "@/app/(painel)/usuarios/acoes";
@@ -22,10 +23,37 @@ import type { UsuarioDetalhe } from "@/types/api";
  * aqui — inclusive os de perfil profissional, que antes só existiam no
  * cadastro feito pelo próprio aluno.
  */
+/** ISO → "YYYY-MM-DD", que é o que <input type="date"> entende. */
+function paraCampoData(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+/** "YYYY-MM-DD" → ISO completo, que é o que a API grava. */
+function paraIso(valor: string, fimDoDia = false) {
+  return new Date(`${valor}T${fimDoDia ? "23:59:59" : "00:00:00"}`).toISOString();
+}
+
+/** A cortesia vigente, se houver — é dela que saem as datas já preenchidas. */
+function cortesiaAtual(usuario: UsuarioDetalhe) {
+  return usuario.assinaturas.find(
+    (a) => (a.metodoPagamento ?? "").toUpperCase().startsWith("CORTE"),
+  );
+}
+
 export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+
+  /*
+   * O papel vira estado porque os campos de período só existem quando ele é
+   * CORTESIA. Antes o <select> era não controlado e o formulário não tinha
+   * como reagir à escolha.
+   */
+  const [papel, setPapel] = useState<string>(usuario.role);
+  const vigente = cortesiaAtual(usuario);
 
   async function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -64,12 +92,60 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
     const senha = texto("senha");
     if (senha) dados.senha = senha;
 
+    /*
+     * Cortesia é papel MAIS período: sem as datas o acesso não abre.
+     * `PUT /usuario/admin/usuarios/:id` só troca a role — não existe
+     * `dataInicio`/`dataFim` no DTO dele —, e era por isso que promover
+     * alguém a Cortesia não liberava nada: gravava um rótulo e nenhuma
+     * assinatura. Quem grava o período é `PUT /assinatura/admin/periodo/:id`.
+     */
+    const cortesia = dados.role === "CORTESIA";
+    const inicio = String(campos.get("dataInicio") ?? "");
+    const fim = String(campos.get("dataFim") ?? "");
+
+    if (cortesia) {
+      if (!inicio || !fim) {
+        setSalvando(false);
+        setErro("Informe o início e o fim da cortesia.");
+        return;
+      }
+      if (paraIso(fim, true) <= paraIso(inicio)) {
+        setSalvando(false);
+        setErro("O fim da cortesia precisa ser depois do início.");
+        return;
+      }
+    }
+
     const resultado = await atualizarUsuario(usuario.id, dados);
-    setSalvando(false);
 
     if (!resultado.ok) {
+      setSalvando(false);
       setErro(resultado.erro);
       return;
+    }
+
+    if (cortesia) {
+      const periodo = await atualizarPeriodoCortesia(usuario.id, {
+        dataInicio: paraIso(inicio),
+        dataFim: paraIso(fim, true),
+      });
+
+      setSalvando(false);
+
+      if (!periodo.ok) {
+        /*
+         * O papel já foi gravado, mas o período não — e é o período que abre o
+         * acesso. Dizer isso em voz alta importa: sem o aviso, a tela voltaria
+         * "salvo" e o aluno continuaria vendo a tela de assinar, exatamente o
+         * sintoma que este formulário existe para resolver.
+         */
+        setErro(
+          `O papel foi alterado para Cortesia, mas o período NÃO foi gravado — o acesso segue bloqueado. ${periodo.erro}`,
+        );
+        return;
+      }
+    } else {
+      setSalvando(false);
     }
 
     router.push("/usuarios?feito=salvo");
@@ -113,7 +189,8 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
           >
             <select
               name="role"
-              defaultValue={usuario.role}
+              value={papel}
+              onChange={(e) => setPapel(e.target.value)}
               className={CONTROLE}
             >
               <option value="USER">Usuário</option>
@@ -122,6 +199,46 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
             </select>
           </Campo>
         </div>
+
+        {/*
+          O período só aparece — e só é exigido — quando o papel é Cortesia.
+          É ele que abre o acesso: o papel sozinho não libera nada.
+        */}
+        {papel === "CORTESIA" && (
+          <div className="border-borda-suave bg-fundo-2 flex flex-col gap-4 rounded-lg border border-dashed p-4 sm:flex-row">
+            <Campo rotulo="Início da cortesia" obrigatorio>
+              <input
+                name="dataInicio"
+                type="date"
+                required
+                /*
+                 * `||`, e não `??`: `paraCampoData` devolve string VAZIA
+                 * quando não há cortesia anterior, e vazio não é nulo — com
+                 * `??` o campo abriria em branco em vez de hoje.
+                 */
+                defaultValue={
+                  paraCampoData(vigente?.dataInicio) ||
+                  new Date().toISOString().slice(0, 10)
+                }
+                className={CONTROLE}
+              />
+            </Campo>
+
+            <Campo
+              rotulo="Fim da cortesia"
+              obrigatorio
+              ajuda="Depois desta data o acesso fecha sozinho."
+            >
+              <input
+                name="dataFim"
+                type="date"
+                required
+                defaultValue={paraCampoData(vigente?.dataFim)}
+                className={CONTROLE}
+              />
+            </Campo>
+          </div>
+        )}
 
         <Campo
           rotulo="Nova senha"
