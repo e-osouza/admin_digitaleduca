@@ -6,6 +6,8 @@ import type {
   ConteudoAdmin,
   BuscaConteudos,
   ConteudoBusca,
+  Cupom,
+  ConfigApp,
   EstatisticasPlataforma,
   Instrutor,
   ListaPaginada,
@@ -63,6 +65,19 @@ export function obterEstatisticas(de?: string, ate?: string) {
   return apiOpcional<EstatisticasPlataforma>(`/dashboard/estatisticas${query}`, {
     auth: "dashboard",
     revalidar: 300,
+  });
+}
+
+/**
+ * Configuração da plataforma.
+ *
+ * Sem cache: é uma tela de uma linha só, lida raramente e logo depois de ser
+ * escrita — servir valor velho aqui faria o admin achar que não salvou.
+ */
+export function obterConfigApp() {
+  return apiOpcional<ConfigApp>("/app/config", {
+    auth: "jwt",
+    revalidar: false,
   });
 }
 
@@ -146,6 +161,24 @@ export function buscarConteudos(filtros: FiltrosConteudo) {
     auth: "jwt",
     revalidar: false,
   });
+}
+
+/* ---------------- cupons ---------------- */
+
+/**
+ * Todos os cupons.
+ *
+ * A rota não pagina nem filtra — e por ora tudo bem: cupom é cadastro de
+ * campanha, medido em dezenas, não em milhares. Abas, busca e ordenação são
+ * feitas aqui sobre a lista inteira. Se um dia passar de algumas centenas,
+ * vale mover os filtros para o backend, como fiz em conteúdos e trilhas.
+ */
+export function listarCupons() {
+  return api<Cupom[]>("/cupom", { auth: "jwt", revalidar: false });
+}
+
+export function obterCupom(id: number) {
+  return api<Cupom>(`/cupom/${id}`, { auth: "jwt", revalidar: false });
 }
 
 /* ---------------- taxonomia ---------------- */

@@ -639,3 +639,52 @@ export interface EstatisticasPlataforma {
   avaliacoesPorNota: { nota: number; total: number }[];
   dispositivos: { canal: string; total: number }[];
 }
+
+/**
+ * Registro único de configuração da plataforma — `GET /app/config`.
+ *
+ * Junta duas coisas de naturezas diferentes: a trava de versão mínima do app
+ * mobile e o interruptor do carrossel da home. É uma tabela de uma linha só
+ * (`id = 1`), criada sob demanda pelo backend.
+ */
+export interface ConfigApp {
+  id: number;
+  /** Build mínimo aceito. `0` desliga a obrigatoriedade de atualizar. */
+  minBuildAndroid: number;
+  minBuildIos: number;
+  storeUrlAndroid: string | null;
+  storeUrlIos: string | null;
+  mensagemUpdate: string | null;
+  /** Carrossel de destaques do topo da página inicial, web e app. */
+  slideDestaqueAtivo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Cupom de desconto percentual — `GET /cupom`.
+ *
+ * Atenção ao campo `ativo`: ele é só UMA das condições de validade. Um cupom
+ * com `ativo: true` pode estar agendado, expirado ou esgotado e ser recusado
+ * no checkout. A situação real se calcula em `situacaoDoCupom`.
+ */
+export interface Cupom {
+  id: number;
+  codigo: string;
+  descricao: string | null;
+  /** 1 a 100, sobre o preço do plano. */
+  percentual: number;
+  duracao: CupomDuracao;
+  /** Obrigatório quando `duracao` é REPEATING. */
+  duracaoCiclos: number | null;
+  validoDe: string | null;
+  validoAte: string | null;
+  /** `null` = ilimitado. */
+  limiteUsos: number | null;
+  usosAtuais: number;
+  /** `null` = vale para qualquer plano pago. */
+  planoId: number | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

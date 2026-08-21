@@ -151,6 +151,7 @@ export const GRUPOS: GrupoNav[] = [
       {
         href: "/cupons",
         rotulo: "Cupons",
+        pronta: true,
         icone: (
           <>
             <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h11A1.5 1.5 0 0 1 17 6.5V8a2 2 0 0 0 0 4v1.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 13.5V12a2 2 0 0 0 0-4V6.5Z" />
@@ -193,6 +194,7 @@ export const GRUPOS: GrupoNav[] = [
       {
         href: "/configuracoes",
         rotulo: "Configurações do app",
+        pronta: true,
         icone: (
           <>
             <circle cx="10" cy="10" r="2.5" />
