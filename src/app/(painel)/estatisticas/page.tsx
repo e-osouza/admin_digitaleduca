@@ -10,6 +10,7 @@ import { GradeIndicadores, Indicador } from "@/components/indicadores";
 import { RankingComFoto } from "@/components/ranking-com-foto";
 import { dataBR, horasBR, moedaBR, numeroBR, plural } from "@/lib/formato";
 import { alturaBarras } from "@/lib/grafico";
+import { rotuloDoTipo } from "@/lib/tipos";
 import { obterEstatisticas } from "@/lib/queries";
 
 export const metadata = { title: "Estatísticas · Painel DigitalEduca" };
@@ -128,8 +129,12 @@ export default async function PaginaEstatisticas({
     valor: l.visualizacoes,
     apoio: `${horasBR(l.horas)} · ${plural(l.conteudos, "conteúdo", "conteúdos")}`,
   }));
+  /* O banco guarda AULA; a interface inteira diz MasterClass. */
+  const tipos = consumoPorTipo.map((l) => ({ ...l, tipo: rotuloDoTipo(l.tipo) }));
+
   const conteudos = topConteudos.map((l) => ({
     ...l,
+    tipo: rotuloDoTipo(l.tipo),
     rotulo: encurtar(l.titulo),
   }));
   const aulas = topAulas.map((l) => ({ ...l, rotulo: encurtar(l.titulo) }));
@@ -413,7 +418,7 @@ export default async function PaginaEstatisticas({
           titulo="Tipos de conteúdo mais acessados"
           descricao="Horas e conclusões de cada tipo estão na tabela."
           altura={200}
-          dados={consumoPorTipo}
+          dados={tipos}
           colunas={[
             { cabecalho: "Tipo", campo: "tipo" },
             {
@@ -426,7 +431,7 @@ export default async function PaginaEstatisticas({
           ]}
         >
           <GraficoPizza
-            dados={consumoPorTipo}
+            dados={tipos}
             chaveRotulo="tipo"
             chaveValor="visualizacoes"
             rotuloTotal="visualizações"

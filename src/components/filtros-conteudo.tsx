@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { Categoria, TipoConteudo } from "@/types/api";
+import { TIPOS_EDITAVEIS } from "@/lib/tipos";
+import type { Categoria } from "@/types/api";
 
 /**
  * Podcast tem tela própria em `/podcasts`, então não é oferecido aqui.
@@ -10,10 +11,7 @@ import type { Categoria, TipoConteudo } from "@/types/api";
  * Sem filtro de tipo a listagem ainda traz episódios: o `/conteudos/search`
  * só aceita UM tipo por vez, e não há como pedir "tudo menos podcast".
  */
-const TIPOS: { valor: TipoConteudo; rotulo: string }[] = [
-  { valor: "AULA", rotulo: "Aula" },
-  { valor: "PALESTRA", rotulo: "Palestra" },
-];
+const TIPOS = TIPOS_EDITAVEIS;
 
 const CONTROLE =
   "border-borda bg-superficie text-texto focus:border-acento-claro rounded-lg border px-3 py-2 text-sm outline-none transition-colors";

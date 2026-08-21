@@ -5,7 +5,15 @@
  * OpenAPI: vários DTOs não têm `@ApiProperty` e aparecem vazios no Swagger.
  */
 
-export type TipoConteudo = "PALESTRA" | "PODCAST" | "AULA";
+/**
+ * Os quatro tipos do enum do banco.
+ *
+ * `AULA` é exibida como **MasterClass** em toda interface, mas o valor
+ * gravado continua `AULA`: ele viaja na API para o app mobile já instalado,
+ * que compara a string. A troca de nome é de apresentação, não de dado —
+ * por isso o rótulo mora nos mapas de exibição, e nunca no valor.
+ */
+export type TipoConteudo = "PALESTRA" | "PODCAST" | "AULA" | "CURSO";
 export type GratuitoTipo = "NENHUM" | "PERMANENTE" | "TEMPORARIO";
 export type Role = "USER" | "SUPERADMIN" | "CORTESIA";
 export type IntervaloPlano = "day" | "week" | "month" | "year";

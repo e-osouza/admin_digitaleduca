@@ -25,22 +25,14 @@ import {
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
 import { enviarParaVimeo } from "@/lib/upload-vimeo";
-import type {
-  Categoria,
-  ConteudoAdmin,
-  Instrutor,
-  Subcategoria,
-  TipoConteudo,
-} from "@/types/api";
+import { TIPOS_EDITAVEIS } from "@/lib/tipos";
+import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria } from "@/types/api";
 
 /**
  * Podcast não aparece aqui: tem cadastro próprio em `/podcasts`, com campos
  * diferentes (apresentador, convidados) e sem módulos.
  */
-const TIPOS: { valor: TipoConteudo; rotulo: string }[] = [
-  { valor: "AULA", rotulo: "Aula" },
-  { valor: "PALESTRA", rotulo: "Palestra" },
-];
+const TIPOS = TIPOS_EDITAVEIS;
 
 /**
  * Níveis oferecidos. Hoje o acervo inteiro está como "Iniciante"; os outros

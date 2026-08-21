@@ -2,13 +2,10 @@
 
 import { useState } from "react";
 import { CONTROLE } from "@/components/campos-formulario";
+import { ROTULO_TIPO } from "@/lib/tipos";
 import type { ConteudoBusca } from "@/types/api";
 
-const ROTULO_TIPO: Record<string, string> = {
-  AULA: "Aula",
-  PALESTRA: "Palestra",
-  PODCAST: "Podcast",
-};
+
 
 /**
  * Escolhe conteúdos numa ordem específica.

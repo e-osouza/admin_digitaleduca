@@ -7,15 +7,10 @@ import {
   buscarConteudos,
   listarCategorias,
 } from "@/lib/queries";
-import type { ConteudoBusca, TipoConteudo } from "@/types/api";
+import { ROTULO_TIPO } from "@/lib/tipos";
+import type { ConteudoBusca } from "@/types/api";
 
 export const metadata = { title: "Conteúdos · Painel DigitalEduca" };
-
-const ROTULO_TIPO: Record<TipoConteudo, string> = {
-  AULA: "Aula",
-  PALESTRA: "Palestra",
-  PODCAST: "Podcast",
-};
 
 const data = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
