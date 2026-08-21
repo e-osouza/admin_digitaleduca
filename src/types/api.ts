@@ -33,6 +33,23 @@ export interface ListaPaginada<T> {
   pagination: Paginacao;
 }
 
+/**
+ * Resultado de `/conteudos/search`.
+ *
+ * `contadores` só vem para SUPERADMIN — quem não enxerga rascunho não tem aba
+ * de rascunho. Eles refletem os OUTROS filtros ativos, mas não o recorte de
+ * status: é o que faz a aba "Rascunhos" continuar mostrando 5 enquanto você
+ * está vendo os publicados.
+ */
+export interface BuscaConteudos extends ListaPaginada<ConteudoBusca> {
+  contadores: {
+    todos: number;
+    publicados: number;
+    rascunhos: number;
+    destaques: number;
+  } | null;
+}
+
 /** Envelope `{ data }` sem paginação (`/trilhas`, `/conteudos/tipos`…). */
 export interface Envelope<T> {
   data: T[];
@@ -222,8 +239,19 @@ export interface ModuloTrilha {
   conteudos: ItemTrilha[];
 }
 
+export type TipoTrilha = "CURSO" | "TRILHA";
+
+/**
+ * Curso e trilha são o MESMO registro, separados por `tipo`.
+ *
+ * Os dois são uma sequência ordenada de conteúdos, opcionalmente agrupada em
+ * módulos — o curso reúne MasterClasses numa formação fechada, a trilha
+ * encadeia formações num percurso maior. Duplicar a estrutura daria duas
+ * implementações da mesma ideia.
+ */
 export interface Trilha {
   id: number;
+  tipo: TipoTrilha;
   titulo: string;
   descricao: string | null;
   thumbnailDesktop: string | null;
@@ -235,6 +263,18 @@ export interface Trilha {
   totalConteudos: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** `GET /trilhas/admin/all` — mesma forma do resultado de conteúdos. */
+export interface BuscaTrilhas {
+  data: Trilha[];
+  pagination: Paginacao;
+  contadores: {
+    todos: number;
+    publicados: number;
+    rascunhos: number;
+    destaques: number;
+  };
 }
 
 export interface TrilhaDetalhe extends Trilha {

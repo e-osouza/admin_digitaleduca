@@ -49,8 +49,31 @@ export const GRUPOS: GrupoNav[] = [
     titulo: "Conteúdo",
     itens: [
       {
+        href: "/cursos",
+        rotulo: "Cursos",
+        pronta: true,
+        icone: (
+          <>
+            <path d="M3.5 5.5A1.5 1.5 0 0 1 5 4h4.5v12H5a1.5 1.5 0 0 0-1.5 1.5v-12Z" />
+            <path d="M16.5 5.5A1.5 1.5 0 0 0 15 4h-4.5v12H15a1.5 1.5 0 0 1 1.5 1.5v-12Z" />
+          </>
+        ),
+      },
+      {
+        href: "/trilhas",
+        rotulo: "Trilhas",
+        pronta: true,
+        icone: (
+          <>
+            <circle cx="5" cy="5" r="2" />
+            <circle cx="15" cy="15" r="2" />
+            <path d="M7 5h4a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h4" />
+          </>
+        ),
+      },
+      {
         href: "/conteudos",
-        rotulo: "Conteúdos",
+        rotulo: "MasterClass",
         pronta: true,
         icone: (
           <>
@@ -67,18 +90,6 @@ export const GRUPOS: GrupoNav[] = [
           <>
             <rect x="7.5" y="2.5" width="5" height="9" rx="2.5" />
             <path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5" />
-          </>
-        ),
-      },
-      {
-        href: "/trilhas",
-        rotulo: "Trilhas",
-        pronta: true,
-        icone: (
-          <>
-            <circle cx="5" cy="5" r="2" />
-            <circle cx="15" cy="15" r="2" />
-            <path d="M7 5h4a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h4" />
           </>
         ),
       },

@@ -253,3 +253,77 @@ export async function removerVideoIntrodutorio(
 
   return { ok: true, id };
 }
+
+/* ---------------- ações em lote ---------------- */
+
+export type ResultadoLote =
+  | { ok: true; afetados: number }
+  | { ok: false; erro: string; afetados: number };
+
+/**
+ * Aplica uma mudança de estado a vários conteúdos.
+ *
+ * A API não tem rota de lote, então são N requisições. Elas vão em série de
+ * propósito: uma rajada de 24 PUTs simultâneos no mesmo backend é a forma mais
+ * fácil de derrubá-lo, e a seleção da tela é limitada à página visível.
+ *
+ * Parcial conta como sucesso parcial, não como falha: se 20 dos 24 mudaram,
+ * dizer "deu erro" faria o admin repetir tudo — inclusive o que já funcionou.
+ * O retorno diz quantos foram, e a tela mostra os dois números.
+ */
+async function emLote(
+  ids: number[],
+  aplicar: (id: number, token: string) => Promise<Response>,
+): Promise<ResultadoLote> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada.", afetados: 0 };
+
+  let afetados = 0;
+  let primeiroErro: string | null = null;
+
+  for (const id of ids) {
+    const resposta = await aplicar(id, token);
+    if (resposta.ok) afetados += 1;
+    else if (!primeiroErro) primeiroErro = await mensagemDeErro(resposta);
+  }
+
+  revalidatePath("/conteudos");
+
+  if (primeiroErro) {
+    return { ok: false, erro: primeiroErro, afetados };
+  }
+  return { ok: true, afetados };
+}
+
+/** Publica ou volta para rascunho os conteúdos selecionados. */
+export async function publicarEmLote(
+  ids: number[],
+  publicado: boolean,
+): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) => {
+    /*
+      Multipart com um campo só. O backend recebe tudo por `FormData` nesta
+      rota, e o DTO é parcial — mandar apenas `publicado` deixa o resto do
+      conteúdo intocado.
+    */
+    const corpo = new FormData();
+    corpo.set("publicado", publicado ? "true" : "false");
+
+    return fetch(`${API_URL}/conteudos/${id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      body: corpo,
+      cache: "no-store",
+    });
+  });
+}
+
+export async function excluirEmLote(ids: number[]): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) =>
+    fetch(`${API_URL}/conteudos/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+  );
+}

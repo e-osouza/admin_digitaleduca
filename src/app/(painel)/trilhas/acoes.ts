@@ -16,6 +16,12 @@ export type ModuloEnviado = {
 };
 
 export type DadosTrilha = {
+  /**
+   * CURSO ou TRILHA — o mesmo registro, papéis diferentes. Vai no corpo
+   * porque o `create` do backend monta os campos um a um: omitir aqui grava
+   * TRILHA em silêncio, mesmo tendo vindo da tela de Cursos.
+   */
+  tipo?: "CURSO" | "TRILHA";
   titulo: string;
   descricao?: string;
   nivel?: string;
@@ -59,6 +65,7 @@ async function mensagemDeErro(resposta: Response): Promise<string> {
 function montarCorpo(dados: DadosTrilha, arquivos: FormData): FormData {
   const corpo = new FormData();
 
+  if (dados.tipo) corpo.set("tipo", dados.tipo);
   corpo.set("titulo", dados.titulo);
   if (dados.descricao) corpo.set("descricao", dados.descricao);
   if (dados.nivel) corpo.set("nivel", dados.nivel);
@@ -168,4 +175,74 @@ export async function excluirTrilha(id: number): Promise<Resultado> {
 
   revalidatePath("/trilhas");
   return { ok: true, id };
+}
+
+/* ---------------- ações em lote ---------------- */
+
+export type ResultadoLote =
+  | { ok: true; afetados: number }
+  | { ok: false; erro: string; afetados: number };
+
+/**
+ * Mesma mecânica do lote de conteúdos: N requisições em série, porque a API
+ * não tem rota de lote e uma rajada simultânea é a forma mais fácil de
+ * derrubar o backend. Sucesso parcial conta como parcial — dizer "falhou"
+ * quando 20 de 24 mudaram faria o admin repetir o que já deu certo.
+ */
+async function emLote(
+  ids: number[],
+  aplicar: (id: number, token: string) => Promise<Response>,
+): Promise<ResultadoLote> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada.", afetados: 0 };
+
+  let afetados = 0;
+  let primeiroErro: string | null = null;
+
+  for (const id of ids) {
+    const resposta = await aplicar(id, token);
+    if (resposta.ok) afetados += 1;
+    else if (!primeiroErro) primeiroErro = await mensagemDeErro(resposta);
+  }
+
+  revalidatePath("/trilhas");
+  revalidatePath("/cursos");
+
+  if (primeiroErro) return { ok: false, erro: primeiroErro, afetados };
+  return { ok: true, afetados };
+}
+
+export async function publicarTrilhasEmLote(
+  ids: number[],
+  publicada: boolean,
+): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) => {
+    /*
+      Multipart com um campo só. A rota recebe tudo por FormData e o DTO é
+      parcial, então mandar apenas `publicada` não toca no resto da trilha —
+      nem na estrutura de conteúdos, que é redefinida por inteiro quando
+      `conteudoIds` ou `modulos` aparecem no corpo.
+    */
+    const corpo = new FormData();
+    corpo.set("publicada", publicada ? "true" : "false");
+
+    return fetch(`${API_URL}/trilhas/${id}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: corpo,
+      cache: "no-store",
+    });
+  });
+}
+
+export async function excluirTrilhasEmLote(
+  ids: number[],
+): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) =>
+    fetch(`${API_URL}/trilhas/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+  );
 }

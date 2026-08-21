@@ -4,8 +4,8 @@ import type {
   AlcancePush,
   Categoria,
   ConteudoAdmin,
+  BuscaConteudos,
   ConteudoBusca,
-  Envelope,
   EstatisticasPlataforma,
   Instrutor,
   ListaPaginada,
@@ -16,7 +16,8 @@ import type {
   ResumoVideos,
   Subcategoria,
   Tag,
-  Trilha,
+  BuscaTrilhas,
+  TipoTrilha,
   UsuarioAdmin,
   UsuarioDetalhe,
   TrilhaDetalhe,
@@ -98,8 +99,14 @@ export const LIMITE_MAXIMO_BUSCA = 24;
 export type FiltrosConteudo = {
   q?: string;
   tipo?: string;
+  /** Tipo a remover do resultado — o painel tira podcast, que tem tela própria. */
+  excluirTipo?: string;
   categoriaId?: number;
   subcategoriaId?: number;
+  /** `true` só publicados, `false` só rascunhos, ausente = todos. */
+  publicado?: boolean;
+  destaque?: boolean;
+  ordenar?: string;
   page?: number;
   limit?: number;
 };
@@ -118,14 +125,24 @@ export function buscarConteudos(filtros: FiltrosConteudo) {
   const busca = new URLSearchParams();
   if (filtros.q) busca.set("q", filtros.q);
   if (filtros.tipo) busca.set("tipo", filtros.tipo);
+  if (filtros.excluirTipo) busca.set("excluirTipo", filtros.excluirTipo);
   if (filtros.categoriaId) busca.set("categoriaId", String(filtros.categoriaId));
   if (filtros.subcategoriaId) {
     busca.set("subcategoriaId", String(filtros.subcategoriaId));
   }
+  /*
+    `!== undefined` e não `if (filtros.publicado)`: o valor útil aqui inclui
+    `false` ("só rascunhos"), que a checagem por veracidade descartaria.
+  */
+  if (filtros.publicado !== undefined) {
+    busca.set("publicado", String(filtros.publicado));
+  }
+  if (filtros.destaque) busca.set("destaque", "true");
+  if (filtros.ordenar) busca.set("ordenar", filtros.ordenar);
   busca.set("page", String(filtros.page ?? 1));
   busca.set("limit", String(filtros.limit ?? LIMITE_MAXIMO_BUSCA));
 
-  return api<ListaPaginada<ConteudoBusca>>(`/conteudos/search?${busca}`, {
+  return api<BuscaConteudos>(`/conteudos/search?${busca}`, {
     auth: "jwt",
     revalidar: false,
   });
@@ -249,12 +266,39 @@ export async function listarInstrutoresComUso() {
 /* ---------------- trilhas ---------------- */
 
 /** Todas as trilhas, inclusive rascunhos. Só SUPERADMIN. */
-export async function listarTrilhas() {
-  const resposta = await api<Envelope<Trilha>>("/trilhas/admin/all", {
+export type FiltrosTrilha = {
+  tipo?: TipoTrilha;
+  q?: string;
+  publicada?: boolean;
+  destaque?: boolean;
+  categoriaId?: number;
+  ordenar?: string;
+  page?: number;
+  limit?: number;
+};
+
+/**
+ * Listagem administrativa de trilhas e cursos — a mesma tabela, separada por
+ * `tipo`. Devolve paginação e os contadores das abas, como a de conteúdos.
+ */
+export function listarTrilhas(filtros: FiltrosTrilha = {}) {
+  const busca = new URLSearchParams();
+  if (filtros.tipo) busca.set("tipo", filtros.tipo);
+  if (filtros.q) busca.set("q", filtros.q);
+  /* `!== undefined` porque `false` ("só rascunhos") é um valor útil aqui. */
+  if (filtros.publicada !== undefined) {
+    busca.set("publicada", String(filtros.publicada));
+  }
+  if (filtros.destaque) busca.set("destaque", "true");
+  if (filtros.categoriaId) busca.set("categoriaId", String(filtros.categoriaId));
+  if (filtros.ordenar) busca.set("ordenar", filtros.ordenar);
+  busca.set("page", String(filtros.page ?? 1));
+  busca.set("limit", String(filtros.limit ?? 24));
+
+  return api<BuscaTrilhas>(`/trilhas/admin/all?${busca}`, {
     auth: "jwt",
     revalidar: false,
   });
-  return resposta.data;
 }
 
 export function obterTrilha(id: number) {

@@ -41,6 +41,7 @@ export function FormularioTrilha({
   instrutores,
   nomesDeTags,
   acaoExcluir,
+  tipo = "TRILHA",
 }: {
   trilha?: TrilhaDetalhe;
   conteudos: ConteudoBusca[];
@@ -49,6 +50,8 @@ export function FormularioTrilha({
   instrutores: Instrutor[];
   nomesDeTags: string[];
   acaoExcluir?: React.ReactNode;
+  /** O que está sendo criado. A tela de Cursos passa CURSO. */
+  tipo?: "CURSO" | "TRILHA";
 }) {
   const router = useRouter();
   const editando = Boolean(trilha);
@@ -138,6 +141,8 @@ export function FormularioTrilha({
     arquivos.delete("video");
 
     const dados = {
+      /* Só na criação: mudar o tipo de uma trilha existente é outra operação. */
+      ...(trilha ? {} : { tipo }),
       titulo: String(arquivos.get("titulo") ?? "").trim(),
       descricao: texto("descricao"),
       nivel: texto("nivel"),

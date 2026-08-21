@@ -16,7 +16,14 @@ const TIPOS = TIPOS_EDITAVEIS;
 const CONTROLE =
   "border-borda bg-superficie text-texto focus:border-acento-claro rounded-lg border px-3 py-2 text-sm outline-none transition-colors";
 
-export function FiltrosConteudo({ categorias }: { categorias: Categoria[] }) {
+export function FiltrosConteudo({
+  categorias,
+  semTipo,
+}: {
+  categorias: Categoria[];
+  /** Telas de um tipo só (MasterClass, Podcasts) não têm o que escolher aqui. */
+  semTipo?: boolean;
+}) {
   const router = useRouter();
   const parametros = useSearchParams();
 
@@ -64,7 +71,9 @@ export function FiltrosConteudo({ categorias }: { categorias: Categoria[] }) {
 
   const tipo = parametros.get("tipo") ?? "";
   const categoriaId = parametros.get("categoriaId") ?? "";
-  const temFiltro = Boolean(texto || tipo || categoriaId);
+  const ordenar = parametros.get("ordenar") ?? "";
+  const status = parametros.get("status") ?? "";
+  const temFiltro = Boolean(texto || tipo || categoriaId || ordenar || status);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -79,6 +88,7 @@ export function FiltrosConteudo({ categorias }: { categorias: Categoria[] }) {
         />
       </label>
 
+      {!semTipo && (
       <label>
         <span className="sr-only">Tipo</span>
         <select
@@ -94,6 +104,7 @@ export function FiltrosConteudo({ categorias }: { categorias: Categoria[] }) {
           ))}
         </select>
       </label>
+      )}
 
       <label>
         <span className="sr-only">Categoria</span>
@@ -110,6 +121,22 @@ export function FiltrosConteudo({ categorias }: { categorias: Categoria[] }) {
               {categoria.nome}
             </option>
           ))}
+        </select>
+      </label>
+
+      <label>
+        <span className="sr-only">Ordenação</span>
+        <select
+          value={ordenar}
+          onChange={(evento) =>
+            aplicar({ ordenar: evento.target.value || null })
+          }
+          className={CONTROLE}
+        >
+          <option value="">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+          <option value="titulo">Título (A–Z)</option>
+          <option value="titulo_desc">Título (Z–A)</option>
         </select>
       </label>
 
