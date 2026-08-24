@@ -2,12 +2,13 @@ import "server-only";
 import { api, apiOpcional } from "@/lib/api";
 import type {
   AlcancePush,
-  Categoria,
-  ConteudoAdmin,
   BuscaConteudos,
+  BuscaTrilhas,
+  Categoria,
+  ConfigApp,
+  ConteudoAdmin,
   ConteudoBusca,
   Cupom,
-  ConfigApp,
   EstatisticasPlataforma,
   Instrutor,
   ListaPaginada,
@@ -18,11 +19,11 @@ import type {
   ResumoVideos,
   Subcategoria,
   Tag,
-  BuscaTrilhas,
   TipoTrilha,
+  TrilhaDetalhe,
   UsuarioAdmin,
   UsuarioDetalhe,
-  TrilhaDetalhe,
+  Video,
 } from "@/types/api";
 
 /* ---------------- dashboard (token estático) ---------------- */
@@ -161,6 +162,16 @@ export function buscarConteudos(filtros: FiltrosConteudo) {
     auth: "jwt",
     revalidar: false,
   });
+}
+
+/**
+ * Biblioteca de vídeos — tudo que já está no Vimeo pela plataforma.
+ *
+ * Sem cache: quem abre a biblioteca acabou de enviar algo com frequência, e
+ * uma lista velha esconderia justamente o vídeo que a pessoa procura.
+ */
+export function listarVideos() {
+  return api<Video[]>("/video", { auth: "jwt", revalidar: false });
 }
 
 /* ---------------- cupons ---------------- */

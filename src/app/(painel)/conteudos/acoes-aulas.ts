@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { API_URL } from "@/lib/api";
+import { obterLinkVideo } from "@/lib/queries";
 import { lerToken } from "@/lib/session";
 
 export type ResultadoSimples = { ok: true } | { ok: false; erro: string };
@@ -165,4 +166,61 @@ export async function excluirAula(
   if (!resultado.ok) return resultado;
   atualizarTela(conteudoId);
   return { ok: true };
+}
+
+/**
+ * Cria uma aula apontando para um vídeo QUE JÁ ESTÁ no Vimeo.
+ *
+ * Não envia arquivo: só cria o vínculo com a mesma URI. É o que permite a
+ * mesma aula aparecer em mais de um curso sem duplicar o arquivo lá.
+ */
+export async function vincularVideoExistente(
+  conteudoId: number,
+  dados: {
+    titulo: string;
+    videoUrl: string;
+    duracao?: number;
+    moduloId?: number;
+  },
+): Promise<ResultadoSimples> {
+  const corpo: Record<string, unknown> = {
+    titulo: dados.titulo,
+    videoUrl: dados.videoUrl,
+  };
+
+  if (dados.duracao && dados.duracao > 0) corpo.duracao = dados.duracao;
+  if (dados.moduloId) corpo.moduloId = dados.moduloId;
+  else corpo.conteudoId = conteudoId;
+
+  const resultado = await chamar("/video/create", "POST", corpo);
+  if (!resultado.ok) return resultado;
+
+  atualizarTela(conteudoId);
+  return { ok: true };
+}
+
+/**
+ * Link tocável de um vídeo, para a prévia dentro do modal.
+ *
+ * Existe como ação porque `obterLinkVideo` é `server-only` — o modal roda no
+ * cliente e não pode chamá-la direto. Buscar sob demanda, e não para a lista
+ * inteira, evita 139 chamadas ao Vimeo só para abrir a biblioteca.
+ *
+ * Prefere MP4 como a prévia do servidor: o link padrão é HLS, que só toca
+ * nativamente no Safari, e trazer o hls.js para o painel por causa de uma
+ * prévia não se paga.
+ */
+export async function obterLinkDoVideo(
+  vimeoUri: string,
+): Promise<{ mp4: string | null; original: string | null }> {
+  const id = vimeoUri.replace("/videos/", "").trim();
+  if (!id) return { mp4: null, original: null };
+
+  const link = await obterLinkVideo(id);
+  if (!link) return { mp4: null, original: null };
+
+  const mp4 =
+    link.sources?.find((fonte) => fonte.type?.includes("mp4"))?.url ?? null;
+
+  return { mp4, original: link.url ?? null };
 }
