@@ -53,8 +53,13 @@ export async function criarUsuario(dados: {
   senha: string;
   celular: string;
   role: string;
-  dataInicio: string;
-  dataFim: string;
+  /*
+    Opcionais de propósito: o backend só cria a assinatura de cortesia quando
+    `dataFim` chega. Mandar datas para um papel que não é Cortesia liberaria
+    acesso total sem ninguém ter pedido.
+  */
+  dataInicio?: string;
+  dataFim?: string;
 }): Promise<Resultado> {
   return chamar("/usuario/admin/create", "POST", dados);
 }

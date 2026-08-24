@@ -54,7 +54,12 @@ export function FiltrosSimples({
   }, [texto]);
 
   const ordenar = parametros.get("ordenar") ?? "";
-  const temFiltro = Boolean(texto || ordenar || parametros.get("status"));
+  /* `papel` é a aba da tela de usuários, o equivalente ao `status` das
+     listagens de conteúdo — sem ele "Limpar" sumia justamente quando o
+     único filtro ativo era a aba. */
+  const temFiltro = Boolean(
+    texto || ordenar || parametros.get("status") || parametros.get("papel"),
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-3">

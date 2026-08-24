@@ -20,7 +20,7 @@ export type TipoConteudo =
   | "CURSO"
   | "TRILHA";
 export type GratuitoTipo = "NENHUM" | "PERMANENTE" | "TEMPORARIO";
-export type Role = "USER" | "SUPERADMIN" | "CORTESIA";
+export type Role = "USER" | "SUPERADMIN" | "CORTESIA" | "CLUB";
 export type IntervaloPlano = "day" | "week" | "month" | "year";
 export type CupomDuracao = "ONCE" | "FOREVER" | "REPEATING";
 export type PapelInstrutor = "INSTRUTOR" | "APRESENTADOR" | "CONVIDADO";
@@ -424,6 +424,7 @@ export interface BuscaUsuariosAdmin extends ListaPaginada<UsuarioAdmin> {
     USER: number;
     SUPERADMIN: number;
     CORTESIA: number;
+    CLUB: number;
   };
 }
 

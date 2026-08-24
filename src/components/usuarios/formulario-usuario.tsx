@@ -185,7 +185,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
 
           <Campo
             rotulo="Papel"
-            ajuda="Rebaixar para Usuário encerra as cortesias na hora. Assinatura paga não é afetada."
+            ajuda="Rebaixar para Usuário ou Club encerra as cortesias na hora. Assinatura paga não é afetada — e Club, sozinho, não libera acesso."
           >
             <select
               name="role"
@@ -195,6 +195,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
             >
               <option value="USER">Usuário</option>
               <option value="CORTESIA">Cortesia</option>
+              <option value="CLUB">Club</option>
               <option value="SUPERADMIN">Admin</option>
             </select>
           </Campo>

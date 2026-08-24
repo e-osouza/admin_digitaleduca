@@ -23,6 +23,12 @@ const PAPEIS = [
     ajuda: "Acesso completo sem pagar, pelo período definido abaixo.",
   },
   {
+    valor: "CLUB",
+    rotulo: "Club",
+    ajuda:
+      "Marca a pessoa como membro do Club. Hoje NÃO libera acesso por si só — o conteúdo continua dependendo da assinatura, igual a Usuário.",
+  },
+  {
     valor: "SUPERADMIN",
     rotulo: "Administrador",
     ajuda: "Acesso total, incluindo este painel.",
@@ -72,15 +78,25 @@ export function FormularioNovoUsuario() {
       celular: String(campos.get("celular") ?? "").trim(),
       role: papel,
       /*
+        O período só vai quando o papel é Cortesia. O backend cria a assinatura
+        de cortesia SEMPRE que recebe `dataFim`, sem olhar o papel — mandando as
+        datas em todos os casos, cadastrar alguém como Usuário (ou Club) criava
+        uma cortesia de um ano em silêncio, dando o acesso total que a tela
+        acabara de dizer que aquele papel não dá.
+
         A data do campo é `AAAA-MM-DD`, sem hora. `new Date("2026-01-01")` seria
         lida como UTC e voltaria um dia no nosso fuso — daí fixar o meio-dia.
       */
-      dataInicio: new Date(
-        `${String(campos.get("dataInicio") ?? hoje())}T12:00:00`,
-      ).toISOString(),
-      dataFim: new Date(
-        `${String(campos.get("dataFim") ?? umAnoAFrente())}T12:00:00`,
-      ).toISOString(),
+      ...(papel === "CORTESIA"
+        ? {
+            dataInicio: new Date(
+              `${String(campos.get("dataInicio") ?? hoje())}T12:00:00`,
+            ).toISOString(),
+            dataFim: new Date(
+              `${String(campos.get("dataFim") ?? umAnoAFrente())}T12:00:00`,
+            ).toISOString(),
+          }
+        : {}),
     });
 
     setSalvando(false);
@@ -102,7 +118,11 @@ export function FormularioNovoUsuario() {
             <input name="nome" required maxLength={120} className={CONTROLE} />
           </Campo>
 
-          <Campo rotulo="E-mail" obrigatorio ajuda="É com ele que a pessoa entra.">
+          <Campo
+            rotulo="E-mail"
+            obrigatorio
+            ajuda="É com ele que a pessoa entra."
+          >
             <input
               name="email"
               type="email"
@@ -195,34 +215,41 @@ export function FormularioNovoUsuario() {
         )}
       </Secao>
 
-      <Secao
-        titulo="Período de acesso"
-        ajuda="O cadastro cria uma assinatura junto — é assim que a API libera o acesso sem passar por pagamento."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo rotulo="Início">
-            <input
-              name="dataInicio"
-              type="date"
-              defaultValue={hoje()}
-              className={CONTROLE}
-            />
-          </Campo>
+      {/*
+        Só aparece na Cortesia, como na tela de edição: é ela que abre o acesso.
+        Nos outros papéis o período não teria efeito nenhum a não ser um efeito
+        indesejado — criar uma cortesia para quem não deveria ter.
+      */}
+      {papel === "CORTESIA" && (
+        <Secao
+          titulo="Período de acesso"
+          ajuda="O cadastro cria uma assinatura de cortesia junto — é assim que a API libera o acesso sem passar por pagamento."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo rotulo="Início">
+              <input
+                name="dataInicio"
+                type="date"
+                defaultValue={hoje()}
+                className={CONTROLE}
+              />
+            </Campo>
 
-          <Campo rotulo="Fim">
-            <input
-              name="dataFim"
-              type="date"
-              defaultValue={umAnoAFrente()}
-              className={CONTROLE}
-            />
-          </Campo>
-        </div>
-      </Secao>
+            <Campo rotulo="Fim">
+              <input
+                name="dataFim"
+                type="date"
+                defaultValue={umAnoAFrente()}
+                className={CONTROLE}
+              />
+            </Campo>
+          </div>
+        </Secao>
+      )}
 
       <p className="text-texto-3 text-xs">
-        Cargo, área de atuação e as demais informações de perfil são
-        preenchidas na edição do usuário — o cadastro não as recebe.
+        Cargo, área de atuação e as demais informações de perfil são preenchidas
+        na edição do usuário — o cadastro não as recebe.
       </p>
 
       {erro && (

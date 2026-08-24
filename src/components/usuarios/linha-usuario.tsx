@@ -8,6 +8,7 @@ const ROTULO_PAPEL: Record<string, string> = {
   USER: "Usuário",
   SUPERADMIN: "Admin",
   CORTESIA: "Cortesia",
+  CLUB: "Club",
 };
 
 /** Assinatura ativa e dentro do período — mesma regra do `AcessoService`. */

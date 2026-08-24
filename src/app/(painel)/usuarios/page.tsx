@@ -13,14 +13,17 @@ export const metadata = { title: "Usuários · Painel DigitalEduca" };
  * As abas são por PAPEL — é o recorte que a equipe realmente usa aqui, do
  * mesmo jeito que em conteúdos o recorte é publicado/rascunho.
  *
- * `AbasStatus` já sabe montar isso; só os rótulos mudam, e o parâmetro na URL
- * continua sendo `status` para não haver dois vocabulários de navegação.
+ * A chave da aba é o próprio papel, e o parâmetro na URL é `papel`. Antes as
+ * abas reaproveitavam as chaves de conteúdo (`destaques` querendo dizer
+ * "administradores"), o que só se sustentava enquanto os papéis coubessem nas
+ * quatro abas fixas — com CLUB deixaram de caber.
  */
-const PAPEL: Record<string, string> = {
-  publicados: "USER",
-  rascunhos: "CORTESIA",
-  destaques: "SUPERADMIN",
-};
+const ABAS = [
+  { chave: "USER", rotulo: "Usuários" },
+  { chave: "CORTESIA", rotulo: "Cortesia" },
+  { chave: "CLUB", rotulo: "Club" },
+  { chave: "SUPERADMIN", rotulo: "Administradores" },
+] as const;
 
 export default async function PaginaUsuarios({
   searchParams,
@@ -37,11 +40,14 @@ export default async function PaginaUsuarios({
     return Number.isFinite(valor) && valor > 0 ? valor : undefined;
   };
 
-  const status = texto("status") ?? "";
+  /* Só um papel conhecido vira filtro: `?papel=qualquercoisa` na URL
+     devolveria 400 do backend em vez de simplesmente não filtrar. */
+  const papelBruto = texto("papel") ?? "";
+  const papel = ABAS.some((a) => a.chave === papelBruto) ? papelBruto : "";
 
   const resultado = await listarUsuarios({
     q: texto("q"),
-    role: PAPEL[status],
+    role: papel || undefined,
     ordenar: texto("ordenar"),
     page: numero("page") ?? 1,
   });
@@ -50,8 +56,8 @@ export default async function PaginaUsuarios({
   if (texto("q")) parametros.set("q", texto("q")!);
   if (texto("ordenar")) parametros.set("ordenar", texto("ordenar")!);
 
-  const comStatus = new URLSearchParams(parametros);
-  if (status) comStatus.set("status", status);
+  const comPapel = new URLSearchParams(parametros);
+  if (papel) comPapel.set("papel", papel);
 
   return (
     <div className="flex flex-col gap-5">
@@ -78,20 +84,18 @@ export default async function PaginaUsuarios({
       <AvisoAcao />
 
       <AbasStatus
-        contadores={{
-          todos: resultado.contadores.todos,
-          publicados: resultado.contadores.USER,
-          rascunhos: resultado.contadores.CORTESIA,
-          destaques: resultado.contadores.SUPERADMIN,
-        }}
-        statusAtual={status}
+        abas={[
+          { chave: "", rotulo: "Todos", total: resultado.contadores.todos },
+          ...ABAS.map((aba) => ({
+            chave: aba.chave,
+            rotulo: aba.rotulo,
+            total: resultado.contadores[aba.chave] ?? 0,
+          })),
+        ]}
+        statusAtual={papel}
         parametros={parametros}
         base="/usuarios"
-        rotulos={{
-          publicados: "Usuários",
-          rascunhos: "Cortesia",
-          destaques: "Administradores",
-        }}
+        parametro="papel"
       />
 
       <FiltrosSimples
@@ -120,7 +124,7 @@ export default async function PaginaUsuarios({
       <Paginacao
         dados={resultado.pagination}
         base="/usuarios"
-        parametros={comStatus}
+        parametros={comPapel}
       />
     </div>
   );
