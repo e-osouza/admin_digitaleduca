@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  buscarVideosNaBiblioteca,
   criarAula,
   obterLinkDoVideo,
   vincularVideoExistente,
@@ -256,15 +257,30 @@ function AbaBiblioteca({
   aoConcluir: () => void;
 }) {
   const [busca, setBusca] = useState("");
+  const [lista, setLista] = useState<Video[]>(biblioteca);
+  const [buscando, setBuscando] = useState(false);
   const [escolhido, setEscolhido] = useState<Video | null>(null);
   const [fonte, setFonte] = useState<string | null>(null);
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [vinculando, setVinculando] = useState(false);
 
-  const termo = busca.trim().toLocaleLowerCase("pt-BR");
-  const lista = biblioteca
-    .filter((v) => v.url && (!termo || v.titulo.toLocaleLowerCase("pt-BR").includes(termo)))
-    .slice(0, 60);
+  /*
+    Busca no servidor, com atraso.
+
+    A rota pagina, então filtrar no cliente só varreria a primeira página — o
+    vídeo da 25ª posição em diante ficaria inalcançável. O atraso evita uma
+    requisição por tecla.
+  */
+  useEffect(() => {
+    const relogio = setTimeout(async () => {
+      setBuscando(true);
+      const resultado = await buscarVideosNaBiblioteca(busca);
+      setLista(resultado as Video[]);
+      setBuscando(false);
+    }, 400);
+
+    return () => clearTimeout(relogio);
+  }, [busca]);
 
   async function escolher(video: Video) {
     setEscolhido(video);
@@ -308,8 +324,12 @@ function AbaBiblioteca({
           className={CONTROLE}
         />
 
+        {buscando && (
+          <p className="text-texto-3 text-xs">Buscando…</p>
+        )}
+
         <ul className="border-borda-suave divide-borda-suave/60 max-h-80 divide-y overflow-y-auto rounded-lg border">
-          {lista.map((video) => (
+          {lista.filter((v) => v.url).map((video) => (
             <li key={video.id}>
               <button
                 type="button"

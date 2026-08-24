@@ -4,6 +4,7 @@ import type {
   AlcancePush,
   BuscaConteudos,
   BuscaTrilhas,
+  BuscaVideos,
   Categoria,
   ConfigApp,
   ConteudoAdmin,
@@ -23,7 +24,6 @@ import type {
   TrilhaDetalhe,
   UsuarioAdmin,
   UsuarioDetalhe,
-  Video,
 } from "@/types/api";
 
 /* ---------------- dashboard (token estático) ---------------- */
@@ -164,14 +164,29 @@ export function buscarConteudos(filtros: FiltrosConteudo) {
   });
 }
 
+/** Quantas mídias por página. Grade de 5 colunas fecha em 24 sem sobra feia. */
+export const LIMITE_MIDIA = 24;
+
 /**
- * Biblioteca de vídeos — tudo que já está no Vimeo pela plataforma.
+ * Biblioteca de vídeos — o que já está no Vimeo pela plataforma.
+ *
+ * Pagina desde 24/08/2026: eram 139 registros vindo de uma vez, e a busca
+ * acontecia no cliente sobre a lista inteira. Agora as duas coisas são do
+ * servidor.
  *
  * Sem cache: quem abre a biblioteca acabou de enviar algo com frequência, e
  * uma lista velha esconderia justamente o vídeo que a pessoa procura.
  */
-export function listarVideos() {
-  return api<Video[]>("/video", { auth: "jwt", revalidar: false });
+export function listarVideos(filtros: { q?: string; page?: number } = {}) {
+  const busca = new URLSearchParams();
+  if (filtros.q) busca.set("q", filtros.q);
+  busca.set("page", String(filtros.page ?? 1));
+  busca.set("limit", String(LIMITE_MIDIA));
+
+  return api<BuscaVideos>(`/video?${busca}`, {
+    auth: "jwt",
+    revalidar: false,
+  });
 }
 
 /* ---------------- cupons ---------------- */

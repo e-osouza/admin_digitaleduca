@@ -107,6 +107,34 @@ export const GRUPOS: GrupoNav[] = [
     ],
   },
   {
+    titulo: "Mídia",
+    itens: [
+      {
+        href: "/midia/videos",
+        rotulo: "Vídeos",
+        pronta: true,
+        icone: (
+          <>
+            <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" />
+            <path d="m8.5 8 4.5 2-4.5 2V8Z" />
+          </>
+        ),
+      },
+      {
+        href: "/midia/imagens",
+        rotulo: "Imagens",
+        pronta: true,
+        icone: (
+          <>
+            <rect x="2.5" y="4" width="15" height="12" rx="1.5" />
+            <path d="M2.5 13l4-4 3.5 3.5L13 9.5l4.5 4.5" />
+            <circle cx="7" cy="7.5" r="1.2" />
+          </>
+        ),
+      },
+    ],
+  },
+  {
     titulo: "Pessoas",
     itens: [
       {

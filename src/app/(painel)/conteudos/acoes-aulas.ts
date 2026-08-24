@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { API_URL } from "@/lib/api";
-import { obterLinkVideo } from "@/lib/queries";
+import { listarVideos, obterLinkVideo } from "@/lib/queries";
 import { lerToken } from "@/lib/session";
 
 export type ResultadoSimples = { ok: true } | { ok: false; erro: string };
@@ -223,4 +223,18 @@ export async function obterLinkDoVideo(
     link.sources?.find((fonte) => fonte.type?.includes("mp4"))?.url ?? null;
 
   return { mp4, original: link.url ?? null };
+}
+
+/**
+ * Busca na biblioteca de vídeos, para o modal.
+ *
+ * Antes o modal recebia os 139 vídeos de uma vez e filtrava no cliente. Com a
+ * rota paginada isso deixou de funcionar: filtrar a primeira página esconderia
+ * tudo que estivesse da 25ª em diante. A busca passou a ser do servidor.
+ */
+export async function buscarVideosNaBiblioteca(
+  q: string,
+): Promise<{ id: number; titulo: string; url?: string; duracao: number | null }[]> {
+  const resultado = await listarVideos({ q: q.trim() || undefined, page: 1 });
+  return resultado.data;
 }

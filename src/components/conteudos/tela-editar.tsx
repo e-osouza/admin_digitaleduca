@@ -85,8 +85,13 @@ export async function TelaEditarConteudo({
     listarInstrutores().catch(() => []),
     listarNomesDeTags().catch(() => []),
     agrupador ? listarConteudosParaAgrupar().catch(() => []) : [],
-    /* Biblioteca do modal de vídeo — falha não pode derrubar a edição. */
-    listarVideos().catch(() => []),
+    /*
+      Primeira página da biblioteca, para o modal abrir já com opções — a
+      busca dentro dele vai ao servidor. Falha não pode derrubar a edição.
+    */
+    listarVideos()
+      .then((r) => r.data)
+      .catch(() => []),
   ]);
 
   const itensAtuais = (conteudo.itens ?? [])

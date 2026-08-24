@@ -113,6 +113,9 @@ export interface Video {
   thumbnailUrl?: string | null;
 }
 
+/** `GET /video` — passou a paginar em 24/08/2026. */
+export type BuscaVideos = ListaPaginada<Video>;
+
 export interface Modulo {
   id: number;
   titulo: string;
