@@ -417,6 +417,16 @@ export interface UsuarioAdmin {
   assinaturas: AssinaturaResumo[];
 }
 
+/** `GET /usuario/admin/usuarios` — lista com os contadores das abas de papel. */
+export interface BuscaUsuariosAdmin extends ListaPaginada<UsuarioAdmin> {
+  contadores: {
+    todos: number;
+    USER: number;
+    SUPERADMIN: number;
+    CORTESIA: number;
+  };
+}
+
 /** Detalhe completo de um usuário — `GET /usuario/admin/usuarios/:id`. */
 export interface UsuarioDetalhe {
   id: number;

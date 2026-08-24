@@ -17,9 +17,12 @@ const CONTROLE =
 export function FiltrosSimples({
   base,
   placeholder,
+  ordenacoes,
 }: {
   base: string;
   placeholder: string;
+  /** Sobrescreve as opções de ordenação — pessoas ordenam por nome, não por título. */
+  ordenacoes?: { valor: string; rotulo: string }[];
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -75,10 +78,18 @@ export function FiltrosSimples({
           }
           className={CONTROLE}
         >
-          <option value="">Atualizados recentemente</option>
-          <option value="antigos">Mais antigos</option>
-          <option value="titulo">Título (A–Z)</option>
-          <option value="titulo_desc">Título (Z–A)</option>
+          {(
+            ordenacoes ?? [
+              { valor: "", rotulo: "Atualizados recentemente" },
+              { valor: "antigos", rotulo: "Mais antigos" },
+              { valor: "titulo", rotulo: "Título (A–Z)" },
+              { valor: "titulo_desc", rotulo: "Título (Z–A)" },
+            ]
+          ).map((opcao) => (
+            <option key={opcao.valor} value={opcao.valor}>
+              {opcao.rotulo}
+            </option>
+          ))}
         </select>
       </label>
 

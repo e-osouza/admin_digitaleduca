@@ -4,6 +4,7 @@ import type {
   AlcancePush,
   BuscaConteudos,
   BuscaTrilhas,
+  BuscaUsuariosAdmin,
   BuscaVideos,
   Categoria,
   ConfigApp,
@@ -22,7 +23,6 @@ import type {
   Tag,
   TipoTrilha,
   TrilhaDetalhe,
-  UsuarioAdmin,
   UsuarioDetalhe,
 } from "@/types/api";
 
@@ -401,16 +401,23 @@ export async function listarConteudosParaAgrupar() {
 
 export const LIMITE_USUARIOS = 25;
 
-export function listarUsuarios(filtros: { q?: string; page?: number }) {
+export function listarUsuarios(filtros: {
+  q?: string;
+  role?: string;
+  ordenar?: string;
+  page?: number;
+}) {
   const busca = new URLSearchParams();
   if (filtros.q) busca.set("q", filtros.q);
+  if (filtros.role) busca.set("role", filtros.role);
+  if (filtros.ordenar) busca.set("ordenar", filtros.ordenar);
   busca.set("page", String(filtros.page ?? 1));
   busca.set("limit", String(LIMITE_USUARIOS));
 
-  return api<ListaPaginada<UsuarioAdmin>>(
-    `/usuario/admin/usuarios?${busca}`,
-    { auth: "jwt", revalidar: false },
-  );
+  return api<BuscaUsuariosAdmin>(`/usuario/admin/usuarios?${busca}`, {
+    auth: "jwt",
+    revalidar: false,
+  });
 }
 
 /** Detalhe completo de um usuário, para a tela de edição. */

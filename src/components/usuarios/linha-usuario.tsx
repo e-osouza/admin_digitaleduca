@@ -37,7 +37,7 @@ export function LinhaUsuario({ usuario }: { usuario: UsuarioAdmin }) {
     <li>
       <Link
         href={`/usuarios/${usuario.id}/editar`}
-        className="hover:bg-superficie-2 flex items-center gap-3 px-4 py-3 transition-colors"
+        className="hover:bg-superficie-2 group flex items-center gap-3 px-4 py-3 transition-colors"
       >
         <span className="bg-superficie-2 relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           {usuario.avatar ? (
@@ -89,11 +89,21 @@ export function LinhaUsuario({ usuario }: { usuario: UsuarioAdmin }) {
           {data.format(new Date(usuario.createdAt))}
         </span>
 
+        {/*
+          Botão de editar em vez de uma seta.
+
+          A linha inteira já é o link — o rótulo não acrescenta destino, mas
+          diz o que acontece ao clicar. A seta sozinha obrigava a deduzir, e a
+          ação aqui abre uma tela com senha, papel e período de acesso.
+
+          `aria-hidden` porque a linha já anuncia o destino ao leitor de tela:
+          sem isso, cada usuário seria lido duas vezes.
+        */}
         <span
           aria-hidden="true"
-          className="text-texto-3 shrink-0 text-sm"
+          className="border-borda text-texto-2 group-hover:border-acento/60 group-hover:text-acento shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
         >
-          →
+          Editar
         </span>
       </Link>
     </li>
