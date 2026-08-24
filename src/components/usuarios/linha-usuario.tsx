@@ -11,6 +11,18 @@ const ROTULO_PAPEL: Record<string, string> = {
   CLUB: "Club",
 };
 
+/**
+ * Como o acesso foi concedido, quando não foi comprado. Cortesia e Club são os
+ * dois períodos que a equipe concede — e precisam se distinguir na lista, senão
+ * um membro do Club é lido como cortesia.
+ */
+function rotuloDoMetodo(metodo: string | null | undefined) {
+  const m = (metodo ?? "").toUpperCase();
+  if (m === "CLUB") return " (club)";
+  if (m.startsWith("CORTE")) return " (cortesia)";
+  return "";
+}
+
 /** Assinatura ativa e dentro do período — mesma regra do `AcessoService`. */
 function assinaturaAtiva(usuario: UsuarioAdmin) {
   const agora = Date.now();
@@ -70,9 +82,7 @@ export function LinhaUsuario({ usuario }: { usuario: UsuarioAdmin }) {
 
         <span className="text-texto-3 hidden shrink-0 text-xs sm:block">
           {ativa
-            ? `${ativa.plano?.nome ?? "assinante"}${
-                ativa.metodoPagamento === "CORTESIA" ? " (cortesia)" : ""
-              }`
+            ? `${ativa.plano?.nome ?? "assinante"}${rotuloDoMetodo(ativa.metodoPagamento)}`
             : "sem assinatura"}
         </span>
 

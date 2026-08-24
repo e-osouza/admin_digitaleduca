@@ -26,7 +26,7 @@ const PAPEIS = [
     valor: "CLUB",
     rotulo: "Club",
     ajuda:
-      "Marca a pessoa como membro do Club. Hoje NÃO libera acesso por si só — o conteúdo continua dependendo da assinatura, igual a Usuário.",
+      "Membro do Club: acesso completo pelo período definido abaixo, igual à Cortesia.",
   },
   {
     valor: "SUPERADMIN",
@@ -78,16 +78,15 @@ export function FormularioNovoUsuario() {
       celular: String(campos.get("celular") ?? "").trim(),
       role: papel,
       /*
-        O período só vai quando o papel é Cortesia. O backend cria a assinatura
-        de cortesia SEMPRE que recebe `dataFim`, sem olhar o papel — mandando as
-        datas em todos os casos, cadastrar alguém como Usuário (ou Club) criava
-        uma cortesia de um ano em silêncio, dando o acesso total que a tela
-        acabara de dizer que aquele papel não dá.
+        O período só vai nos papéis que o usam — Cortesia e Club. O backend cria
+        a assinatura SEMPRE que recebe `dataFim`, sem olhar o papel; mandando as
+        datas em todos os casos, cadastrar alguém como Usuário criava um acesso
+        de um ano em silêncio.
 
         A data do campo é `AAAA-MM-DD`, sem hora. `new Date("2026-01-01")` seria
         lida como UTC e voltaria um dia no nosso fuso — daí fixar o meio-dia.
       */
-      ...(papel === "CORTESIA"
+      ...(papel === "CORTESIA" || papel === "CLUB"
         ? {
             dataInicio: new Date(
               `${String(campos.get("dataInicio") ?? hoje())}T12:00:00`,
@@ -216,14 +215,14 @@ export function FormularioNovoUsuario() {
       </Secao>
 
       {/*
-        Só aparece na Cortesia, como na tela de edição: é ela que abre o acesso.
-        Nos outros papéis o período não teria efeito nenhum a não ser um efeito
-        indesejado — criar uma cortesia para quem não deveria ter.
+        Só aparece na Cortesia e no Club, como na tela de edição: é o período
+        que abre o acesso. Nos outros papéis ele não teria efeito nenhum a não
+        ser um indesejado — liberar acesso para quem não deveria ter.
       */}
-      {papel === "CORTESIA" && (
+      {(papel === "CORTESIA" || papel === "CLUB") && (
         <Secao
           titulo="Período de acesso"
-          ajuda="O cadastro cria uma assinatura de cortesia junto — é assim que a API libera o acesso sem passar por pagamento."
+          ajuda="O cadastro cria o período junto — é assim que a API libera o acesso sem passar por pagamento."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo rotulo="Início">

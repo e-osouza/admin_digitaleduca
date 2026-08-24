@@ -32,14 +32,21 @@ function paraCampoData(iso: string | null | undefined) {
 
 /** "YYYY-MM-DD" → ISO completo, que é o que a API grava. */
 function paraIso(valor: string, fimDoDia = false) {
-  return new Date(`${valor}T${fimDoDia ? "23:59:59" : "00:00:00"}`).toISOString();
+  return new Date(
+    `${valor}T${fimDoDia ? "23:59:59" : "00:00:00"}`,
+  ).toISOString();
 }
 
-/** A cortesia vigente, se houver — é dela que saem as datas já preenchidas. */
-function cortesiaAtual(usuario: UsuarioDetalhe) {
-  return usuario.assinaturas.find(
-    (a) => (a.metodoPagamento ?? "").toUpperCase().startsWith("CORTE"),
-  );
+/**
+ * O período concedido vigente, se houver — é dele que saem as datas já
+ * preenchidas. Cortesia e Club são gravados com métodos diferentes, mas os
+ * dois são períodos que a equipe concede e edita por aqui.
+ */
+function periodoConcedido(usuario: UsuarioDetalhe) {
+  return usuario.assinaturas.find((a) => {
+    const metodo = (a.metodoPagamento ?? "").toUpperCase();
+    return metodo.startsWith("CORTE") || metodo === "CLUB";
+  });
 }
 
 export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
@@ -49,11 +56,13 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
 
   /*
    * O papel vira estado porque os campos de período só existem quando ele é
-   * CORTESIA. Antes o <select> era não controlado e o formulário não tinha
-   * como reagir à escolha.
+   * CORTESIA ou CLUB. Antes o <select> era não controlado e o formulário não
+   * tinha como reagir à escolha.
    */
   const [papel, setPapel] = useState<string>(usuario.role);
-  const vigente = cortesiaAtual(usuario);
+  const comPeriodo = papel === "CORTESIA" || papel === "CLUB";
+  const nomeDoPapel = papel === "CLUB" ? "Club" : "Cortesia";
+  const vigente = periodoConcedido(usuario);
 
   async function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -93,25 +102,28 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
     if (senha) dados.senha = senha;
 
     /*
-     * Cortesia é papel MAIS período: sem as datas o acesso não abre.
+     * Cortesia e Club são papel MAIS período: sem as datas o acesso não abre.
      * `PUT /usuario/admin/usuarios/:id` só troca a role — não existe
      * `dataInicio`/`dataFim` no DTO dele —, e era por isso que promover
      * alguém a Cortesia não liberava nada: gravava um rótulo e nenhuma
-     * assinatura. Quem grava o período é `PUT /assinatura/admin/periodo/:id`.
+     * assinatura. Quem grava o período é `PUT /assinatura/admin/periodo/:id`,
+     * que carimba o método conforme o papel já gravado — por isso ele vai
+     * DEPOIS de `atualizarUsuario`, nunca antes.
      */
-    const cortesia = dados.role === "CORTESIA";
+    const temPeriodo = dados.role === "CORTESIA" || dados.role === "CLUB";
+    const rotulo = dados.role === "CLUB" ? "Club" : "Cortesia";
     const inicio = String(campos.get("dataInicio") ?? "");
     const fim = String(campos.get("dataFim") ?? "");
 
-    if (cortesia) {
+    if (temPeriodo) {
       if (!inicio || !fim) {
         setSalvando(false);
-        setErro("Informe o início e o fim da cortesia.");
+        setErro(`Informe o início e o fim do período de ${rotulo}.`);
         return;
       }
       if (paraIso(fim, true) <= paraIso(inicio)) {
         setSalvando(false);
-        setErro("O fim da cortesia precisa ser depois do início.");
+        setErro("O fim do período precisa ser depois do início.");
         return;
       }
     }
@@ -124,7 +136,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
       return;
     }
 
-    if (cortesia) {
+    if (temPeriodo) {
       const periodo = await atualizarPeriodoCortesia(usuario.id, {
         dataInicio: paraIso(inicio),
         dataFim: paraIso(fim, true),
@@ -140,7 +152,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
          * sintoma que este formulário existe para resolver.
          */
         setErro(
-          `O papel foi alterado para Cortesia, mas o período NÃO foi gravado — o acesso segue bloqueado. ${periodo.erro}`,
+          `O papel foi alterado para ${rotulo}, mas o período NÃO foi gravado — o acesso segue bloqueado. ${periodo.erro}`,
         );
         return;
       }
@@ -185,7 +197,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
 
           <Campo
             rotulo="Papel"
-            ajuda="Rebaixar para Usuário ou Club encerra as cortesias na hora. Assinatura paga não é afetada — e Club, sozinho, não libera acesso."
+            ajuda="Club e Cortesia veem todo o conteúdo, cada um pelo período definido abaixo. Rebaixar para Usuário encerra esse período na hora, sem afetar assinatura paga."
           >
             <select
               name="role"
@@ -202,19 +214,22 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
         </div>
 
         {/*
-          O período só aparece — e só é exigido — quando o papel é Cortesia.
-          É ele que abre o acesso: o papel sozinho não libera nada.
+          O período só aparece — e só é exigido — quando o papel é Cortesia ou
+          Club. É ele que abre o acesso: o papel sozinho não libera nada.
         */}
-        {papel === "CORTESIA" && (
+        {comPeriodo && (
           <div className="border-borda-suave bg-fundo-2 flex flex-col gap-4 rounded-lg border border-dashed p-4 sm:flex-row">
-            <Campo rotulo="Início da cortesia" obrigatorio>
+            <Campo
+              rotulo={`Início d${papel === "CLUB" ? "o" : "a"} ${nomeDoPapel}`}
+              obrigatorio
+            >
               <input
                 name="dataInicio"
                 type="date"
                 required
                 /*
                  * `||`, e não `??`: `paraCampoData` devolve string VAZIA
-                 * quando não há cortesia anterior, e vazio não é nulo — com
+                 * quando não há período anterior, e vazio não é nulo — com
                  * `??` o campo abriria em branco em vez de hoje.
                  */
                 defaultValue={
@@ -226,7 +241,7 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
             </Campo>
 
             <Campo
-              rotulo="Fim da cortesia"
+              rotulo={`Fim d${papel === "CLUB" ? "o" : "a"} ${nomeDoPapel}`}
               obrigatorio
               ajuda="Depois desta data o acesso fecha sozinho."
             >
