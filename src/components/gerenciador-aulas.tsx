@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { BotaoAdicionarVideo } from "@/components/conteudos/botao-adicionar-video";
 import { useState, type FormEvent } from "react";
 import {
   atualizarAula,
@@ -19,12 +20,15 @@ const BOTAO_SECUNDARIO =
   "border-borda text-texto-2 hover:bg-superficie-2 hover:text-texto rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60";
 
 export function GerenciadorAulas({
+  biblioteca,
   conteudoId,
   modulos,
   videosSoltos,
   temPastaVimeo,
   previaVideoUnico,
 }: {
+  /** Vídeos da plataforma, para a aba "Já na plataforma" do modal. */
+  biblioteca: Video[];
   conteudoId: number;
   modulos: Modulo[];
   /** Aulas penduradas direto no conteúdo, sem módulo. */
@@ -135,6 +139,7 @@ export function GerenciadorAulas({
           {modulos.map((modulo) => (
             <CartaoModulo
               key={modulo.id}
+              biblioteca={biblioteca}
               conteudoId={conteudoId}
               modulo={modulo}
               aoFalhar={setErro}
@@ -164,12 +169,12 @@ export function GerenciadorAulas({
           )}
 
           <div className="flex flex-wrap gap-2">
-            <NovaAula
+            <BotaoAdicionarVideo
               conteudoId={conteudoId}
+              biblioteca={biblioteca}
               rotulo={
                 videosSoltos.length === 0 ? "Enviar vídeo" : "Adicionar vídeo"
               }
-              aoFalhar={setErro}
             />
           </div>
         </>
@@ -181,10 +186,12 @@ export function GerenciadorAulas({
 /* ------------------------------------------------------------------ */
 
 function CartaoModulo({
+  biblioteca,
   conteudoId,
   modulo,
   aoFalhar,
 }: {
+  biblioteca: Video[];
   conteudoId: number;
   modulo: Modulo;
   aoFalhar: (mensagem: string) => void;
@@ -281,18 +288,18 @@ function CartaoModulo({
       />
 
       <div className="mt-3">
-        <NovaAula
+        <BotaoAdicionarVideo
           conteudoId={conteudoId}
           moduloId={modulo.id}
+          biblioteca={biblioteca}
           rotulo="Adicionar aula neste módulo"
-          aoFalhar={aoFalhar}
         />
       </div>
     </div>
   );
 }
 
-function ListaAulas({
+export function ListaAulas({
   conteudoId,
   videos,
   aoFalhar,
@@ -439,7 +446,7 @@ function ItemAula({
   );
 }
 
-function NovoModulo({
+export function NovoModulo({
   conteudoId,
   aoFalhar,
 }: {
@@ -485,7 +492,7 @@ function NovoModulo({
  * obrigatórios no backend (`@IsString()` sem `@IsOptional()`) — daí o
  * `required` em todos.
  */
-function FormularioModulo({
+export function FormularioModulo({
   modulo,
   titulo = "Editar módulo",
   rotuloEnvio = "Salvar",
@@ -567,7 +574,7 @@ function FormularioModulo({
   );
 }
 
-function NovaAula({
+export function NovaAula({
   conteudoId,
   moduloId,
   rotulo = "Nova aula avulsa",

@@ -365,6 +365,8 @@ export interface ConteudoAdmin extends Conteudo {
   itens?: {
     id: number;
     ordem: number;
+    /** Módulo do próprio agrupador, ou `null` para item solto. */
+    modulo: { id: number; titulo: string } | null;
     filho: {
       id: number;
       titulo: string;

@@ -121,7 +121,7 @@ export default async function PaginaConteudos({
 
       {resultado.data.length === 0 ? (
         <p className="border-borda-suave bg-superficie text-texto-2 rounded-xl border p-8 text-center text-sm">
-          Nenhum conteúdo encontrado com esses filtros.
+          Nenhuma MasterClass encontrada com esses filtros.
         </p>
       ) : (
         <TabelaConteudos conteudos={resultado.data} />

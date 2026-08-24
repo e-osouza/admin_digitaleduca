@@ -36,6 +36,32 @@ export const TIPOS_DO_MENU: { valor: TipoConteudo; rotulo: string; rota: string 
     { valor: "PODCAST", rotulo: "Podcast", rota: "/podcasts" },
   ];
 
+/**
+ * Rota da listagem de cada tipo.
+ *
+ * Existe porque o menu lateral decide o item ativo pelo PREFIXO da URL: com
+ * todos os tipos editando em `/conteudos/:id/editar`, abrir um curso acendia
+ * "MasterClass" no menu e o link de volta dizia "Conteúdos". Cada tipo tem a
+ * sua rota para que a URL diga a verdade sobre onde você está.
+ */
+export function rotaDoTipo(tipo: TipoConteudo): string {
+  switch (tipo) {
+    case "CURSO":
+      return "/cursos";
+    case "TRILHA":
+      return "/trilhas";
+    case "PODCAST":
+      return "/podcasts";
+    default:
+      return "/conteudos";
+  }
+}
+
+/** Onde este conteúdo é editado. Podcast tem formulário próprio. */
+export function rotaDeEdicao(tipo: TipoConteudo, id: number): string {
+  return `${rotaDoTipo(tipo)}/${id}/editar`;
+}
+
 /** Agrupadores contêm outros conteúdos; os demais contêm vídeos. */
 export function ehAgrupador(tipo: TipoConteudo): boolean {
   return tipo === "CURSO" || tipo === "TRILHA";

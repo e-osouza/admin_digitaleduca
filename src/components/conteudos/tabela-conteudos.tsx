@@ -8,7 +8,7 @@ import {
   excluirEmLote,
   publicarEmLote,
 } from "@/app/(painel)/conteudos/acoes";
-import { ROTULO_TIPO } from "@/lib/tipos";
+import { ROTULO_TIPO, rotaDeEdicao } from "@/lib/tipos";
 import type { ConteudoBusca } from "@/types/api";
 
 const DATA = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -23,12 +23,7 @@ const DATA = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 */
 const PLATAFORMA = process.env.NEXT_PUBLIC_PLATAFORMA_URL?.replace(/\/+$/, "");
 
-/** Podcast tem formulário próprio; o link precisa levar cada um à tela certa. */
-function rotaDeEdicao(conteudo: ConteudoBusca) {
-  return conteudo.tipo === "PODCAST"
-    ? `/podcasts/${conteudo.id}/editar`
-    : `/conteudos/${conteudo.id}/editar`;
-}
+
 
 /**
  * Cabeçalho clicável. Alterna entre as duas direções da mesma coluna e mostra
@@ -344,7 +339,7 @@ function Linha({
 
           <span className="flex min-w-0 flex-col">
             <Link
-              href={rotaDeEdicao(conteudo)}
+              href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
               className="text-texto hover:text-acento-claro truncate font-medium transition-colors"
             >
               {conteudo.titulo}
@@ -369,7 +364,7 @@ function Linha({
             */}
             <span className="mt-1 flex gap-2 text-xs opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
               <Link
-                href={rotaDeEdicao(conteudo)}
+                href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
                 className="text-texto-3 hover:text-acento-claro transition-colors"
               >
                 Editar

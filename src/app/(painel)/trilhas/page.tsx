@@ -15,7 +15,8 @@ export default async function PaginaTrilhas({
       pluralNome="trilhas"
       novo="Nova trilha"
       base="/trilhas"
-      criarEm="/conteudos/novo?tipo=TRILHA"
+      feminino
+      criarEm="/trilhas/novo"
       searchParams={await searchParams}
     />
   );

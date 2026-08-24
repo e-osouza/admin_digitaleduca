@@ -31,6 +31,7 @@ export async function TelaPorTipo({
   pluralNome,
   novo,
   base,
+  feminino,
   criarEm,
   searchParams,
 }: {
@@ -40,6 +41,8 @@ export async function TelaPorTipo({
   pluralNome: string;
   novo: string;
   base: string;
+  /** "trilha" e "MasterClass" são femininos; "curso" e "episódio" não. */
+  feminino?: boolean;
   /** Rota de criação — podcast e conteúdo têm formulários diferentes. */
   criarEm: string;
   searchParams: Record<string, string | string[] | undefined>;
@@ -101,6 +104,11 @@ export async function TelaPorTipo({
           statusAtual={status}
           parametros={parametros}
           base={base}
+          rotulos={
+            feminino
+              ? { publicados: "Publicadas", rascunhos: "Rascunhos" }
+              : undefined
+          }
         />
       )}
 
@@ -108,7 +116,8 @@ export async function TelaPorTipo({
 
       {resultado.data.length === 0 ? (
         <p className="border-borda-suave bg-superficie text-texto-2 rounded-xl border p-8 text-center text-sm">
-          Nenhum {singular} encontrado com esses filtros.
+          {feminino ? "Nenhuma" : "Nenhum"} {singular}{" "}
+          {feminino ? "encontrada" : "encontrado"} com esses filtros.
         </p>
       ) : (
         <TabelaConteudos conteudos={resultado.data} base={base} />

@@ -15,7 +15,7 @@ export default async function PaginaCursos({
       pluralNome="cursos"
       novo="Novo curso"
       base="/cursos"
-      criarEm="/conteudos/novo?tipo=CURSO"
+      criarEm="/cursos/novo"
       searchParams={await searchParams}
     />
   );

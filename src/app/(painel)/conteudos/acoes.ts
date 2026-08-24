@@ -376,8 +376,14 @@ export async function moverConteudo(
   return { ok: true, id };
 }
 
+/** Um conteúdo dentro de um curso, opcionalmente dentro de um módulo dele. */
+export type ItemDoAgrupador = {
+  conteudoId: number;
+  moduloId: number | null;
+};
+
 /**
- * Redefine quais conteúdos um curso ou trilha agrupa.
+ * Redefine quais conteúdos um curso ou trilha agrupa, e em que módulo.
  *
  * A ordem enviada É a ordem final: o backend apaga os vínculos e regrava.
  * Casar item a item deixaria a numeração imprevisível quando o admin
@@ -385,7 +391,7 @@ export async function moverConteudo(
  */
 export async function salvarItensDoConteudo(
   id: number,
-  itemIds: number[],
+  itens: ItemDoAgrupador[],
 ): Promise<Resultado> {
   const token = await lerToken();
   if (!token) return { ok: false, erro: "Sessão expirada." };
@@ -395,7 +401,7 @@ export async function salvarItensDoConteudo(
     `@Transform` do DTO espera nesta rota.
   */
   const corpo = new FormData();
-  corpo.set("itemIds", JSON.stringify(itemIds));
+  corpo.set("itens", JSON.stringify(itens));
 
   const resposta = await fetch(`${API_URL}/conteudos/${id}`, {
     method: "PUT",
@@ -406,7 +412,8 @@ export async function salvarItensDoConteudo(
 
   if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
 
-  revalidatePath(`/conteudos/${id}/editar`);
+  revalidatePath(`/cursos/${id}/editar`);
+  revalidatePath(`/trilhas/${id}/editar`);
   revalidatePath("/cursos");
   revalidatePath("/trilhas");
   return { ok: true, id };

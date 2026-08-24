@@ -16,7 +16,7 @@ import { moverConteudo } from "@/app/(painel)/conteudos/acoes";
   aparece. Os dados que o tipo de destino não exibe continuam gravados.
 */
 
-import { ROTULO_TIPO, TIPOS_DO_MENU } from "@/lib/tipos";
+import { ROTULO_TIPO, TIPOS_DO_MENU, rotaDeEdicao } from "@/lib/tipos";
 import type { TipoConteudo } from "@/types/api";
 
 /**
@@ -71,15 +71,11 @@ export function MoverPara({
       }
 
       /*
-        Podcast tem formulário próprio; os outros três dividem o de conteúdo.
-        Reabre na tela certa em vez de deixar o admin numa edição que já não
-        corresponde ao tipo do item.
+        Reabre na rota do NOVO tipo. Sem isso o admin ficava numa URL que já
+        não corresponde ao item — o menu lateral acendia a seção antiga e o
+        link de volta apontava para a lista errada.
       */
-      router.push(
-        destino === "PODCAST"
-          ? `/podcasts/${id}/editar`
-          : `/conteudos/${id}/editar`,
-      );
+      router.push(rotaDeEdicao(destino, id));
       router.refresh();
       void rota;
     });
