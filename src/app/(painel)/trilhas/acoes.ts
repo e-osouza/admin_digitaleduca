@@ -246,3 +246,33 @@ export async function excluirTrilhasEmLote(
     }),
   );
 }
+
+/**
+ * Move entre Curso e Trilha.
+ *
+ * Aqui a conversão é limpa de verdade: os dois são o mesmo registro, com a
+ * mesma estrutura de conteúdos e módulos. Só o papel muda.
+ */
+export async function moverTrilha(
+  id: number,
+  tipo: "CURSO" | "TRILHA",
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const corpo = new FormData();
+  corpo.set("tipo", tipo);
+
+  const resposta = await fetch(`${API_URL}/trilhas/${id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+    body: corpo,
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath("/trilhas");
+  revalidatePath("/cursos");
+  return { ok: true, id };
+}

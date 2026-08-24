@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { API_URL } from "@/lib/api";
 import { lerToken } from "@/lib/session";
+import type { TipoConteudo } from "@/types/api";
 
 export type Resultado =
   | { ok: true; id: number; vimeoUploadLink?: string }
@@ -326,4 +327,78 @@ export async function excluirEmLote(ids: number[]): Promise<ResultadoLote> {
       cache: "no-store",
     }),
   );
+}
+
+/**
+ * Move um conteúdo entre os quatro tipos do menu.
+ *
+ * É troca de `tipo` na mesma tabela — nada é copiado nem apagado. O que muda
+ * é o formulário que passa a editá-lo e a tela onde ele aparece.
+ */
+export async function moverConteudo(
+  id: number,
+  /*
+    Aceita qualquer tipo do enum, inclusive PALESTRA — que não está no menu
+    mas ainda existe na API. Restringir aqui só faria o painel recusar um
+    movimento que o backend aceita.
+  */
+  tipo: TipoConteudo,
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  /* Multipart com um campo só: a rota recebe FormData e o DTO é parcial. */
+  const corpo = new FormData();
+  corpo.set("tipo", tipo);
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: corpo,
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath("/conteudos");
+  revalidatePath("/podcasts");
+  revalidatePath("/cursos");
+  revalidatePath("/trilhas");
+  return { ok: true, id };
+}
+
+/**
+ * Redefine quais conteúdos um curso ou trilha agrupa.
+ *
+ * A ordem enviada É a ordem final: o backend apaga os vínculos e regrava.
+ * Casar item a item deixaria a numeração imprevisível quando o admin
+ * reordena e remove na mesma edição.
+ */
+export async function salvarItensDoConteudo(
+  id: number,
+  itemIds: number[],
+): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  /*
+    Multipart com um campo só, e a lista como JSON — é o formato que o
+    `@Transform` do DTO espera nesta rota.
+  */
+  const corpo = new FormData();
+  corpo.set("itemIds", JSON.stringify(itemIds));
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: corpo,
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidatePath(`/conteudos/${id}/editar`);
+  revalidatePath("/cursos");
+  revalidatePath("/trilhas");
+  return { ok: true, id };
 }

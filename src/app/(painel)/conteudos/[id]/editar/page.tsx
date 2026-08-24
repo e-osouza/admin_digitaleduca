@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BotaoExcluirConteudo } from "@/components/botao-excluir-conteudo";
+import { ItensDoAgrupador } from "@/components/conteudos/itens-do-agrupador";
+import { MoverPara } from "@/components/mover-para";
 import { FormularioConteudo } from "@/components/formulario-conteudo";
 import { GerenciadorAulas } from "@/components/gerenciador-aulas";
 import { PreviaVideo } from "@/components/previa-video";
 import { TrocarVideo } from "@/components/trocar-video";
 import { ApiError } from "@/lib/api";
+import { ehAgrupador } from "@/lib/tipos";
 import { duracaoLegivel } from "@/lib/formato";
 import {
   listarCategorias,
   listarInstrutores,
+  listarConteudosParaAgrupar,
   listarNomesDeTags,
   listarSubcategorias,
   obterConteudoAdmin,
@@ -38,13 +42,24 @@ export default async function PaginaEditarConteudo({
    */
   if (conteudo.tipo === "PODCAST") redirect(`/podcasts/${conteudo.id}/editar`);
 
-  const [categorias, subcategorias, instrutores, nomesDeTags] =
+  /*
+    O catálogo para escolher itens só é buscado quando o conteúdo agrupa —
+    são várias páginas da API, e uma MasterClass não tem o que fazer com elas.
+  */
+  const agrupador = ehAgrupador(conteudo.tipo);
+
+  const [categorias, subcategorias, instrutores, nomesDeTags, paraAgrupar] =
     await Promise.all([
       listarCategorias(),
       listarSubcategorias(),
       listarInstrutores().catch(() => []),
       listarNomesDeTags().catch(() => []),
+      agrupador ? listarConteudosParaAgrupar().catch(() => []) : [],
     ]);
+
+  const itensAtuais = (conteudo.itens ?? [])
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((item) => item.filho.id);
 
   const modulos = conteudo.modulos ?? [];
 
@@ -99,6 +114,21 @@ export default async function PaginaEditarConteudo({
         }
         secoes={
           <>
+            <MoverPara
+              id={conteudo.id}
+              atual={conteudo.tipo}
+              titulo={conteudo.titulo}
+            />
+
+            {agrupador && (
+              <ItensDoAgrupador
+                id={conteudo.id}
+                tipo={conteudo.tipo}
+                disponiveis={paraAgrupar}
+                iniciais={itensAtuais}
+              />
+            )}
+
             {/*
               Estas seções ficam FORA do <form> do conteúdo: cada ação delas
               tem formulário próprio, e formulário aninhado é HTML inválido —
@@ -133,6 +163,13 @@ export default async function PaginaEditarConteudo({
               A prévia do vídeo vai como prop porque resolver o link no Vimeo
               exige o token e só acontece no servidor.
             */}
+            {/*
+              Módulos e aulas organizam VÍDEOS. Num curso ou trilha o conteúdo
+              vem da seção acima, que agrupa outros conteúdos — mostrar os dois
+              juntos ofereceria dois mecanismos concorrentes para a mesma
+              pergunta ("o que tem dentro?").
+            */}
+            {!agrupador && (
             <section className="border-borda-suave bg-superficie flex flex-col gap-4 rounded-xl border p-5">
               <GerenciadorAulas
                 conteudoId={conteudo.id}
@@ -147,6 +184,7 @@ export default async function PaginaEditarConteudo({
                 }
               />
             </section>
+            )}
           </>
         }
       />
