@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FormularioTrilha } from "@/components/formulario-trilha";
 import {
   listarCategorias,
-  listarConteudosParaTrilha,
+  listarConteudosParaAgrupar,
   listarInstrutores,
   listarNomesDeTags,
   listarSubcategorias,
@@ -25,7 +25,7 @@ export default async function PaginaNovaTrilha({
   const curso = tipo === "CURSO";
   const [conteudos, categorias, subcategorias, instrutores, nomesDeTags] =
     await Promise.all([
-      listarConteudosParaTrilha(),
+      listarConteudosParaAgrupar(),
       listarCategorias(),
       listarSubcategorias(),
       listarInstrutores().catch(() => []),

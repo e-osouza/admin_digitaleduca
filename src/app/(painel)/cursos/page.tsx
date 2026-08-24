@@ -1,4 +1,4 @@
-import { TelaTrilhas } from "@/components/trilhas/tela-trilhas";
+import { TelaPorTipo } from "@/components/conteudos/tela-por-tipo";
 
 export const metadata = { title: "Cursos · Painel DigitalEduca" };
 
@@ -7,5 +7,16 @@ export default async function PaginaCursos({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <TelaTrilhas tipo="CURSO" searchParams={await searchParams} />;
+  return (
+    <TelaPorTipo
+      tipo="CURSO"
+      titulo="Cursos"
+      singular="curso"
+      pluralNome="cursos"
+      novo="Novo curso"
+      base="/cursos"
+      criarEm="/conteudos/novo?tipo=CURSO"
+      searchParams={await searchParams}
+    />
+  );
 }

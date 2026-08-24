@@ -25,14 +25,12 @@ import {
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
 import { enviarParaVimeo } from "@/lib/upload-vimeo";
-import { TIPOS_EDITAVEIS } from "@/lib/tipos";
-import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria } from "@/types/api";
+import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria, TipoConteudo } from "@/types/api";
 
 /**
  * Podcast não aparece aqui: tem cadastro próprio em `/podcasts`, com campos
  * diferentes (apresentador, convidados) e sem módulos.
  */
-const TIPOS = TIPOS_EDITAVEIS;
 
 /**
  * Níveis oferecidos. Hoje o acervo inteiro está como "Iniciante"; os outros
@@ -54,6 +52,7 @@ export function FormularioConteudo({
   nomesDeTags,
   secoes,
   acaoExcluir,
+  tipo: tipoInicial,
 }: {
   /** Ausente = criação. */
   conteudo?: ConteudoAdmin;
@@ -70,9 +69,13 @@ export function FormularioConteudo({
   secoes?: React.ReactNode;
   /** Botão de excluir, montado pela página que conhece o destino. */
   acaoExcluir?: React.ReactNode;
+  /** Tipo do conteúdo. Vem da tela de origem, não de um select. */
+  tipo?: TipoConteudo;
 }) {
   const router = useRouter();
   const editando = Boolean(conteudo);
+
+  const tipo = conteudo?.tipo ?? tipoInicial ?? "AULA";
 
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -269,22 +272,18 @@ export function FormularioConteudo({
           />
         </Campo>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo rotulo="Tipo" obrigatorio>
-            <select
-              name="tipo"
-              required
-              defaultValue={conteudo?.tipo ?? "AULA"}
-              className={CONTROLE}
-            >
-              {TIPOS.map((item) => (
-                <option key={item.valor} value={item.valor}>
-                  {item.rotulo}
-                </option>
-              ))}
-            </select>
-          </Campo>
+        {/*
+          O tipo é campo oculto, não um select.
 
+          Cada tipo tem a sua tela — o botão "Novo curso" cria curso, "Nova
+          MasterClass" cria MasterClass. Um select aqui permitia criar um tipo
+          que não corresponde à tela de origem, e foi assim que conteúdos
+          foram parar num tipo sem listagem. Para trocar depois existe o
+          "Mover para", que avisa o que muda.
+        */}
+        <input type="hidden" name="tipo" value={tipo} />
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Nível">
             <select
               name="level"

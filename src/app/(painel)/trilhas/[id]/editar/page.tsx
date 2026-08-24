@@ -5,7 +5,7 @@ import { FormularioTrilha } from "@/components/formulario-trilha";
 import { ApiError } from "@/lib/api";
 import {
   listarCategorias,
-  listarConteudosParaTrilha,
+  listarConteudosParaAgrupar,
   listarInstrutores,
   listarNomesDeTags,
   listarSubcategorias,
@@ -30,7 +30,7 @@ export default async function PaginaEditarTrilha({
 
   const [conteudos, categorias, subcategorias, instrutores, nomesDeTags] =
     await Promise.all([
-      listarConteudosParaTrilha(),
+      listarConteudosParaAgrupar(),
       listarCategorias(),
       listarSubcategorias(),
       listarInstrutores().catch(() => []),
@@ -54,7 +54,8 @@ export default async function PaginaEditarTrilha({
           {trilha.modulos.length === 1 ? "módulo" : "módulos"} ·{" "}
           {trilha.totalConteudos}{" "}
           {trilha.totalConteudos === 1 ? "conteúdo" : "conteúdos"} ·{" "}
-          {trilha.publicada ? "publicada" : "rascunho"}
+          {trilha.publicada ? "publicada" : "rascunho"} ·{" "}
+          {trilha.tipo === "CURSO" ? "Curso" : "Trilha"}
         </p>
       </div>
 

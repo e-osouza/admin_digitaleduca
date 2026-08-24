@@ -346,7 +346,13 @@ export function obterTrilha(id: number) {
  * `/conteudos`, que traz vídeos, módulos e instrutores de cada item e pesaria
  * dezenas de vezes mais.
  */
-export async function listarConteudosParaTrilha() {
+/**
+ * Todos os conteúdos, para escolher o que entra num curso ou trilha.
+ *
+ * Pagina até o fim porque o seletor precisa da lista inteira para buscar —
+ * filtrar no servidor a cada tecla faria a escolha depender da rede.
+ */
+export async function listarConteudosParaAgrupar() {
   const itens: ConteudoBusca[] = [];
   let pagina = 1;
   let totalPaginas = 1;

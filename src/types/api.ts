@@ -13,7 +13,12 @@
  * que compara a string. A troca de nome é de apresentação, não de dado —
  * por isso o rótulo mora nos mapas de exibição, e nunca no valor.
  */
-export type TipoConteudo = "PALESTRA" | "PODCAST" | "AULA" | "CURSO";
+export type TipoConteudo =
+  | "PALESTRA"
+  | "PODCAST"
+  | "AULA"
+  | "CURSO"
+  | "TRILHA";
 export type GratuitoTipo = "NENHUM" | "PERMANENTE" | "TEMPORARIO";
 export type Role = "USER" | "SUPERADMIN" | "CORTESIA";
 export type IntervaloPlano = "day" | "week" | "month" | "year";
@@ -352,6 +357,24 @@ export interface ConteudoBusca {
  * acesso nem por `EmailVerifiedGuard`.
  */
 export interface ConteudoAdmin extends Conteudo {
+  /**
+   * Conteúdos que ESTE agrupa, quando é CURSO ou TRILHA. Vem sempre da API —
+   * nos demais tipos chega vazio, o que é mais barato que o painel ter de
+   * perguntar duas vezes.
+   */
+  itens?: {
+    id: number;
+    ordem: number;
+    filho: {
+      id: number;
+      titulo: string;
+      tipo: TipoConteudo;
+      thumbnailMobile: string | null;
+      thumbnailDesktop: string | null;
+      publicado: boolean;
+    };
+  }[];
+
   categoria: Categoria | null;
   subcategoria: Subcategoria | null;
   tags: { tag: Tag }[];

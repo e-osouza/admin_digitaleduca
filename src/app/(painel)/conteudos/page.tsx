@@ -48,10 +48,15 @@ export default async function PaginaConteudos({
   const filtros = {
     q: texto("q"),
     /*
-      Esta tela é só de MasterClass. Cada tipo virou um item de menu próprio —
-      cursos e trilhas em /cursos e /trilhas, episódios em /podcasts — então
-      aqui o tipo é fixo, e o filtro de tipo saiu da barra por não ter mais o
-      que escolher.
+      MasterClass é exatamente AULA.
+
+      Por um período esta tela usou `excluirTipo: "PODCAST"` — mostrar tudo
+      que não fosse podcast — como rede contra conteúdo órfão. Isso deixou de
+      servir quando CURSO e TRILHA ganharam tela própria: o item movido daqui
+      para Curso continuava aparecendo nesta lista, e parecia que a mudança
+      tinha deixado uma cópia para trás.
+
+      Hoje os quatro tipos do menu têm cada um a sua tela, então nada some.
     */
     tipo: "AULA",
     categoriaId: numero("categoriaId"),
