@@ -98,11 +98,20 @@ export async function criarConteudo(entrada: FormData): Promise<Resultado> {
 
   const corpo = montarCorpo(entrada);
 
+  /*
+    Vídeo introdutório é OPCIONAL. Havia aqui uma guarda que recusava a
+    criação sem ele — sobra de quando era obrigatório, e que contradizia o
+    próprio formulário, onde o campo está marcado como opcional desde
+    19/08/2026.
+
+    Sem arquivo, `fileSize` não vai no corpo: a API então cria o conteúdo sem
+    teaser, e ainda assim cria a pasta no Vimeo, então módulos e aulas
+    continuam funcionando. O teaser pode ser enviado depois, na edição.
+  */
   const fileSize = entrada.get("fileSize");
-  if (typeof fileSize !== "string" || Number(fileSize) <= 0) {
-    return { ok: false, erro: "Selecione o vídeo introdutório." };
+  if (typeof fileSize === "string" && Number(fileSize) > 0) {
+    corpo.set("fileSize", fileSize);
   }
-  corpo.set("fileSize", fileSize);
 
   /*
    * Obrigatório no DTO de criação. O formulário manda `yyyy-MM-dd`; a API
