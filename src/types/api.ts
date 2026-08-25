@@ -451,6 +451,23 @@ export interface UsuarioDetalhe {
 
   negocio: Negocio | null;
   interesse: Interesse | null;
+
+  /*
+    Club. Um usuário é dono OU membro, nunca os dois: `clubMembros` só tem
+    conteúdo em quem tem papel CLUB, e `clubDono` só em quem foi convidado
+    para um time.
+  */
+  clubLimiteMembros: number | null;
+  clubDono: { id: number; nome: string; role: Role } | null;
+  clubMembros: { id: number; nome: string; email: string; avatar: string | null }[];
+  clubConvites: {
+    id: number;
+    nome: string;
+    email: string;
+    expiraEm: string;
+    emailEnviado: boolean;
+  }[];
+
   assinaturas: (AssinaturaResumo & { cardLast4?: string | null })[];
   dispositivos: { id: number; plataforma: string; createdAt: string }[];
 

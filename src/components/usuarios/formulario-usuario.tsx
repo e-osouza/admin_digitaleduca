@@ -15,6 +15,8 @@ import {
   Secao,
 } from "@/components/campos-formulario";
 import type { UsuarioDetalhe } from "@/types/api";
+import { TimeDoClub } from "@/components/usuarios/time-do-club";
+import { VinculoDeTime } from "@/components/usuarios/vinculo-de-time";
 
 /**
  * Edição do usuário.
@@ -110,6 +112,16 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
      * que carimba o método conforme o papel já gravado — por isso ele vai
      * DEPOIS de `atualizarUsuario`, nunca antes.
      */
+    /*
+      O teto de membros só faz sentido em quem é Club — mandar em outro papel
+      gravaria um número que ninguém lê. String vazia vira null: é assim que a
+      tela diz "usa o padrão do sistema".
+    */
+    if (dados.role === "CLUB") {
+      const limite = String(campos.get("clubLimiteMembros") ?? "").trim();
+      dados.clubLimiteMembros = limite === "" ? null : Number(limite);
+    }
+
     const temPeriodo = dados.role === "CORTESIA" || dados.role === "CLUB";
     const rotulo = dados.role === "CLUB" ? "Club" : "Cortesia";
     const inicio = String(campos.get("dataInicio") ?? "");
@@ -290,6 +302,15 @@ export function FormularioUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
           </label>
         </div>
       </Secao>
+
+      {/*
+        Dono e membro são excludentes: `clubMembros` só tem gente em quem é
+        CLUB, e `clubDono` só existe em quem foi convidado. O papel usado aqui
+        é o do ESTADO, não o gravado — trocar para Club no select já mostra o
+        time, sem precisar salvar antes.
+      */}
+      {papel === "CLUB" && <TimeDoClub usuario={usuario} />}
+      {usuario.clubDono && <VinculoDeTime usuario={usuario} />}
 
       <Secao
         titulo="Perfil profissional"
