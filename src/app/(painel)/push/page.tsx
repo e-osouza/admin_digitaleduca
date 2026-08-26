@@ -1,13 +1,18 @@
 import { FormularioPush } from "@/components/formulario-push";
 import { HistoricoNotificacoes } from "@/components/historico-notificacoes";
-import { obterAlcancePush, obterHistoricoNotificacoes } from "@/lib/queries";
+import {
+  listarImagensDaBiblioteca,
+  obterAlcancePush,
+  obterHistoricoNotificacoes,
+} from "@/lib/queries";
 
 export const metadata = { title: "Notificações · Painel DigitalEduca" };
 
 export default async function PaginaPush() {
-  const [alcance, historico] = await Promise.all([
+  const [alcance, historico, biblioteca] = await Promise.all([
     obterAlcancePush(),
     obterHistoricoNotificacoes(1, 20),
+    listarImagensDaBiblioteca(),
   ]);
 
   const desligados = [
@@ -37,7 +42,7 @@ export default async function PaginaPush() {
         </p>
       )}
 
-      <FormularioPush alcance={alcance} />
+      <FormularioPush alcance={alcance} biblioteca={biblioteca} />
 
       <HistoricoNotificacoes
         itens={historico.data}

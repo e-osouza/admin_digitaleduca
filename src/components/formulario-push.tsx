@@ -8,6 +8,10 @@ import {
   Campo,
   Secao,
 } from "@/components/campos-formulario";
+import {
+  SeletorImagem,
+  type ImagemDaBiblioteca,
+} from "@/components/seletor-imagem";
 import type { AlcancePush, ResultadoPush } from "@/types/api";
 
 /**
@@ -16,7 +20,14 @@ import type { AlcancePush, ResultadoPush } from "@/types/api";
  * Fica atrás de confirmação porque não tem desfazer, não tem agendamento e não
  * tem segmentação: sai para todos os destinos na hora.
  */
-export function FormularioPush({ alcance }: { alcance: AlcancePush }) {
+export function FormularioPush({
+  alcance,
+  biblioteca = [],
+}: {
+  alcance: AlcancePush;
+  /** Imagens já publicadas, para escolher sem caçar a URL noutra tela. */
+  biblioteca?: ImagemDaBiblioteca[];
+}) {
   const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -103,15 +114,18 @@ export function FormularioPush({ alcance }: { alcance: AlcancePush }) {
             />
           </Campo>
 
-          <Campo rotulo="Imagem" ajuda="URL completa. Opcional.">
-            <input
-              value={imagem}
-              onChange={(e) => setImagem(e.target.value)}
-              placeholder="https://…"
-              className={CONTROLE}
-            />
-          </Campo>
         </div>
+
+        <Campo
+          rotulo="Imagem"
+          ajuda="Opcional. Aparece grande abaixo do texto no Android e no Windows; no macOS o sistema desenha a notificação e ignora a foto."
+        >
+          <SeletorImagem
+            valor={imagem}
+            aoMudar={setImagem}
+            biblioteca={biblioteca}
+          />
+        </Campo>
       </Secao>
 
       <Secao titulo="Prévia" ajuda="Aproximação de como chega no aparelho.">

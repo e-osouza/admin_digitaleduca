@@ -353,6 +353,65 @@ export function obterHistoricoNotificacoes(page = 1, limit = 20) {
   );
 }
 
+/**
+ * Imagens já publicadas, para escolher sem colar URL.
+ *
+ * Junta as três fontes que a biblioteca de mídia mostra — capas de conteúdo,
+ * fotos de instrutores e banners. Não existe upload avulso na plataforma: toda
+ * imagem chega presa a alguma coisa, e é isso que esta lista reúne.
+ *
+ * Falha em qualquer fonte devolve o que as outras trouxeram: escolher imagem é
+ * conveniência, e derrubar o formulário inteiro porque uma listagem falhou
+ * seria trocar um campo opcional por uma tela quebrada.
+ */
+export async function listarImagensDaBiblioteca(): Promise<
+  { url: string; titulo: string; origem: string }[]
+> {
+  const [conteudos, instrutores, propagandas] = await Promise.all([
+    buscarConteudos({ limit: 60 }).catch(() => null),
+    listarInstrutores().catch(() => []),
+    listarPropagandas().catch(() => []),
+  ]);
+
+  const itens: { url: string; titulo: string; origem: string }[] = [];
+
+  for (const conteudo of conteudos?.data ?? []) {
+    for (const [campo, rotulo] of [
+      ["thumbnailDesktop", "capa desktop"],
+      ["thumbnailMobile", "capa mobile"],
+    ] as const) {
+      const url = conteudo[campo];
+      if (url) itens.push({ url, titulo: conteudo.titulo, origem: rotulo });
+    }
+  }
+
+  for (const instrutor of instrutores) {
+    if (instrutor.avatar) {
+      itens.push({
+        url: instrutor.avatar,
+        titulo: instrutor.nome,
+        origem: "foto de instrutor",
+      });
+    }
+  }
+
+  for (const propaganda of propagandas) {
+    if (propaganda.imagem) {
+      itens.push({
+        url: propaganda.imagem,
+        titulo: propaganda.titulo || `Banner ${propaganda.id}`,
+        origem: "banner",
+      });
+    }
+  }
+
+  /* A mesma imagem pode estar em dois lugares; mostrar duas vezes só confunde. */
+  const vistas = new Set<string>();
+  return itens.filter((item) =>
+    vistas.has(item.url) ? false : (vistas.add(item.url), true),
+  );
+}
+
 /* ---------------- trilhas ---------------- */
 
 /** Todas as trilhas, inclusive rascunhos. Só SUPERADMIN. */
