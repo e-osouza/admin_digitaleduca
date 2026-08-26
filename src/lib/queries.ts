@@ -14,6 +14,7 @@ import type {
   EstatisticasPlataforma,
   Instrutor,
   ListaPaginada,
+  PerfilInstrutor,
   Plano,
   Propaganda,
   ResumoAssinaturas,
@@ -320,6 +321,21 @@ export async function listarInstrutoresComUso() {
     ...instrutor,
     totalConteudos: usoPorId.get(instrutor.id) ?? 0,
   }));
+}
+
+/**
+ * Um instrutor e os conteúdos que ele assina.
+ *
+ * `GET /instrutor/:id/perfil` é público — é a mesma vitrine que a plataforma do
+ * aluno usa. Serve aqui porque traz, de uma vez, o cadastro e a lista de
+ * conteúdos: sem ela a tela de edição precisaria de duas chamadas para dizer o
+ * que essa pessoa já assina.
+ */
+export function obterInstrutorComConteudos(id: number, limit = 24) {
+  return api<PerfilInstrutor>(
+    `/instrutor/${id}/perfil?limit=${limit}`,
+    { auth: "publica", revalidar: false },
+  );
 }
 
 /* ---------------- trilhas ---------------- */

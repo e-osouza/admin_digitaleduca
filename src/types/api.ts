@@ -103,6 +103,23 @@ export interface Instrutor {
   totalConteudos?: number;
 }
 
+/** Um conteúdo em que o instrutor está creditado. */
+export interface ConteudoDoInstrutor {
+  id: number;
+  titulo: string;
+  tipo: TipoConteudo;
+  thumbnailMobile: string | null;
+  thumbnailDesktop: string | null;
+  rating: number | null;
+}
+
+/** `GET /instrutor/:id/perfil` — o instrutor e o que ele assina. */
+export interface PerfilInstrutor {
+  instrutor: Instrutor & { totalConteudos: number };
+  data: ConteudoDoInstrutor[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 export interface Video {
   id: number;
   titulo: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -11,26 +12,24 @@ import {
 import {
   BOTAO_PRIMARIO,
   BOTAO_TEXTO,
-  CAMPO_ARQUIVO,
   CONTROLE,
   Campo,
+  Secao,
 } from "@/components/campos-formulario";
 import type { Instrutor } from "@/types/api";
 
 /**
- * Cria ou edita um instrutor.
+ * Cria ou edita um instrutor, em página própria.
  *
  * `nome`, `formacao` e `sobre` são obrigatórios na criação — o backend os
  * declara sem `@IsOptional()`. Na edição só vai o que foi preenchido, para não
  * apagar um texto existente com string vazia.
+ *
+ * Ao salvar, volta para a listagem com `?feito=`, como as telas de usuário:
+ * antes o formulário abria dentro da lista e fechava sozinho, o que não dizia
+ * se havia gravado.
  */
-export function FormularioInstrutor({
-  instrutor,
-  aoFechar,
-}: {
-  instrutor?: Instrutor;
-  aoFechar: () => void;
-}) {
+export function FormularioInstrutor({ instrutor }: { instrutor?: Instrutor }) {
   const router = useRouter();
   const editando = Boolean(instrutor);
 
@@ -73,100 +72,117 @@ export function FormularioInstrutor({
       return;
     }
 
-    aoFechar();
+    router.push(`/instrutores?feito=${editando ? "salvo" : "criado"}`);
     router.refresh();
   }
 
   const fotoAtual = removerFoto ? null : (instrutor?.avatar ?? null);
 
   return (
-    <form
-      onSubmit={enviar}
-      className="border-borda bg-superficie-2 flex flex-col gap-4 rounded-xl border p-5"
-    >
-      <h2 className="text-texto font-semibold">
-        {editando ? `Editar ${instrutor?.nome}` : "Novo instrutor"}
-      </h2>
+    <form onSubmit={enviar} className="flex flex-col gap-5">
+      <Secao
+        titulo="Dados do instrutor"
+        ajuda="Nome, formação e texto de apresentação aparecem na vitrine pública da plataforma do aluno."
+      >
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex w-36 shrink-0 flex-col gap-2">
+            <span className="bg-superficie border-borda-suave relative block aspect-square w-36 overflow-hidden rounded-full border">
+              {previa ? (
+                // Blob local fica fora do next/image: o loader manda para o
+                // proxy da API tudo que não começa com "/".
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previa}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : fotoAtual ? (
+                <Image
+                  src={fotoAtual}
+                  alt=""
+                  fill
+                  sizes="144px"
+                  className="object-cover"
+                />
+              ) : (
+                <span className="text-texto-3 absolute inset-0 flex items-center justify-center text-xs">
+                  Sem foto
+                </span>
+              )}
+            </span>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="flex w-32 shrink-0 flex-col gap-2">
-          <span className="bg-superficie border-borda-suave relative block aspect-square w-32 overflow-hidden rounded-full border">
-            {previa ? (
-              // Blob local fica fora do next/image: o loader manda para o
-              // proxy da API tudo que não começa com "/".
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={previa} alt="" className="h-full w-full object-cover" />
-            ) : fotoAtual ? (
-              <Image
-                src={fotoAtual}
-                alt=""
-                fill
-                sizes="128px"
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-texto-3 absolute inset-0 flex items-center justify-center text-xs">
-                Sem foto
-              </span>
-            )}
-          </span>
-
-          <input
-            type="file"
-            name="avatar"
-            accept="image/*"
-            onChange={aoEscolherFoto}
-            className={CAMPO_ARQUIVO}
-          />
-
-          {editando && instrutor?.avatar && !previa && (
-            <label className="text-texto-2 flex items-center gap-1.5 text-xs">
-              <input
-                type="checkbox"
-                name="removerAvatar"
-                checked={removerFoto}
-                onChange={(e) => setRemoverFoto(e.target.checked)}
-                className="accent-acento h-3.5 w-3.5"
-              />
-              Remover a foto atual
+            {/*
+              O input fica escondido e quem aparece é o rótulo. O controle
+              nativo desenha o botão MAIS um texto do navegador ("nenhum
+              arquivo escolhido") que não cabe nesta coluna: alargá-la só
+              trocava o vazamento por um truncamento feio. A prévia acima já
+              diz qual foto está escolhida, então o nome do arquivo não faz
+              falta. O `htmlFor` mantém o clique e o foco pelo teclado.
+            */}
+            <label
+              htmlFor="avatar"
+              className="border-borda bg-superficie-2 text-texto hover:bg-superficie cursor-pointer rounded-lg border px-3 py-1.5 text-center text-xs font-medium transition-colors"
+            >
+              {previa ? "Trocar foto" : instrutor?.avatar ? "Trocar foto" : "Escolher foto"}
             </label>
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <Campo rotulo="Nome" obrigatorio>
             <input
-              name="nome"
-              required
-              defaultValue={instrutor?.nome ?? ""}
-              className={CONTROLE}
+              id="avatar"
+              type="file"
+              name="avatar"
+              accept="image/*"
+              onChange={aoEscolherFoto}
+              className="sr-only"
             />
-          </Campo>
 
-          <Campo
-            rotulo="Formação"
-            obrigatorio={!editando}
-            ajuda="Aparece na vitrine pública da plataforma do aluno."
-          >
-            <input
-              name="formacao"
-              required={!editando}
-              defaultValue={instrutor?.formacao ?? ""}
-              className={CONTROLE}
-            />
-          </Campo>
+            {editando && instrutor?.avatar && !previa && (
+              <label className="text-texto-2 flex items-center gap-1.5 text-xs">
+                <input
+                  type="checkbox"
+                  name="removerAvatar"
+                  checked={removerFoto}
+                  onChange={(e) => setRemoverFoto(e.target.checked)}
+                  className="accent-acento h-3.5 w-3.5"
+                />
+                Remover a foto atual
+              </label>
+            )}
+          </div>
 
-          <Campo rotulo="Sobre" obrigatorio={!editando}>
-            <textarea
-              name="sobre"
-              rows={4}
-              required={!editando}
-              defaultValue={instrutor?.sobre ?? ""}
-              className={`${CONTROLE} resize-y`}
-            />
-          </Campo>
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <Campo rotulo="Nome" obrigatorio>
+              <input
+                name="nome"
+                required
+                defaultValue={instrutor?.nome ?? ""}
+                className={CONTROLE}
+              />
+            </Campo>
+
+            <Campo
+              rotulo="Formação"
+              obrigatorio={!editando}
+              ajuda="Aparece na vitrine pública da plataforma do aluno."
+            >
+              <input
+                name="formacao"
+                required={!editando}
+                defaultValue={instrutor?.formacao ?? ""}
+                className={CONTROLE}
+              />
+            </Campo>
+
+            <Campo rotulo="Sobre" obrigatorio={!editando}>
+              <textarea
+                name="sobre"
+                rows={4}
+                required={!editando}
+                defaultValue={instrutor?.sobre ?? ""}
+                className={`${CONTROLE} resize-y`}
+              />
+            </Campo>
+          </div>
         </div>
-      </div>
+      </Secao>
 
       {erro && (
         <p
@@ -177,18 +193,13 @@ export function FormularioInstrutor({
         </p>
       )}
 
-      <div className="border-borda-suave flex items-center gap-3 border-t pt-4">
+      <div className="flex items-center gap-3">
         <button type="submit" disabled={salvando} className={BOTAO_PRIMARIO}>
           {salvando ? "Salvando…" : editando ? "Salvar" : "Criar instrutor"}
         </button>
-        <button
-          type="button"
-          onClick={aoFechar}
-          disabled={salvando}
-          className={BOTAO_TEXTO}
-        >
+        <Link href="/instrutores" className={BOTAO_TEXTO}>
           Cancelar
-        </button>
+        </Link>
       </div>
     </form>
   );

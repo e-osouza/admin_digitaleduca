@@ -1,3 +1,4 @@
+import { AvisoAcao } from "@/components/aviso-acao";
 import { ListaInstrutores } from "@/components/lista-instrutores";
 import { listarInstrutoresComUso } from "@/lib/queries";
 
@@ -17,6 +18,8 @@ export default async function PaginaInstrutores() {
           {instrutores.length === 1 ? "cadastrado" : "cadastrados"}
         </p>
       </div>
+
+      <AvisoAcao />
 
       {semFormacao > 0 && (
         <p className="border-aviso/40 bg-aviso/10 text-texto-2 rounded-lg border px-3 py-2.5 text-sm">
