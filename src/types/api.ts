@@ -103,6 +103,35 @@ export interface Instrutor {
   totalConteudos?: number;
 }
 
+export type TipoNotificacao =
+  | "CONTEUDO_NOVO"
+  | "CONTEUDO_ATUALIZADO"
+  | "MANUAL";
+
+/** Uma linha do histórico — `GET /notificacoes/admin/historico`. */
+export interface NotificacaoEnviada {
+  id: number;
+  tipo: TipoNotificacao;
+  titulo: string;
+  mensagem: string;
+  link: string | null;
+  imagemUrl: string | null;
+  conteudoId: number | null;
+  /** Quantos aparelhos e navegadores o push alcançou NO momento do disparo. */
+  enviadosMobile: number;
+  enviadosWeb: number;
+  createdAt: string;
+  /** Nulo nas automáticas — elas não têm autor. */
+  criadaPor: { id: number; nome: string } | null;
+  /** Quantas pessoas já abriram. */
+  leituras: number;
+}
+
+export interface HistoricoNotificacoes {
+  data: NotificacaoEnviada[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 /** Um conteúdo em que o instrutor está creditado. */
 export interface ConteudoDoInstrutor {
   id: number;

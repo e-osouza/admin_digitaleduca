@@ -12,6 +12,7 @@ import type {
   ConteudoBusca,
   Cupom,
   EstatisticasPlataforma,
+  HistoricoNotificacoes,
   Instrutor,
   ListaPaginada,
   PerfilInstrutor,
@@ -335,6 +336,20 @@ export function obterInstrutorComConteudos(id: number, limit = 24) {
   return api<PerfilInstrutor>(
     `/instrutor/${id}/perfil?limit=${limit}`,
     { auth: "publica", revalidar: false },
+  );
+}
+
+/**
+ * O que já foi enviado, do mais recente para o mais antigo.
+ *
+ * Inclui automáticas e manuais: as duas passam pelo mesmo registro, e separar
+ * as telas esconderia justamente a comparação que interessa — quanto sai
+ * sozinho contra quanto a equipe escreve.
+ */
+export function obterHistoricoNotificacoes(page = 1, limit = 20) {
+  return api<HistoricoNotificacoes>(
+    `/notificacoes/admin/historico?page=${page}&limit=${limit}`,
+    { auth: "jwt", revalidar: false },
   );
 }
 
