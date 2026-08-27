@@ -31,12 +31,19 @@ export function AbaCategorias({ categorias }: { categorias: Categoria[] }) {
       <NovoItem
         rotulo="Criar categoria"
         espaco="Nome da categoria"
-        aoCriar={(nome) => criarCategoria(nome)}
+        comSlug
+        aoCriar={(nome, form) =>
+          criarCategoria(
+            nome,
+            String(new FormData(form).get("slug") ?? "").trim() || undefined,
+          )
+        }
       />
 
       <ListaEditavel
         itens={categorias}
-        aoRenomear={renomearCategoria}
+        comSlug
+        aoRenomear={(id, dados) => renomearCategoria(id, dados)}
         aoExcluir={excluirCategoria}
         rotuloUso={contarConteudos}
         vazio="Nenhuma categoria cadastrada."
@@ -70,10 +77,13 @@ export function AbaSubcategorias({
       <NovoItem
         rotulo="Criar subcategoria"
         espaco="Nome da subcategoria"
+        comSlug
         aoCriar={(nome, formulario) =>
           criarSubcategoria(
             nome,
             Number(new FormData(formulario).get("categoriaId")),
+            String(new FormData(formulario).get("slug") ?? "").trim() ||
+              undefined,
           )
         }
       >
@@ -89,7 +99,8 @@ export function AbaSubcategorias({
 
       <ListaEditavel
         itens={subcategorias}
-        aoRenomear={(id, nome) => atualizarSubcategoria(id, { nome })}
+        comSlug
+        aoRenomear={(id, dados) => atualizarSubcategoria(id, dados)}
         aoExcluir={excluirSubcategoria}
         extra={(item) =>
           (item as Subcategoria).categorias.join(", ") || "sem categoria"
@@ -129,7 +140,13 @@ export function AbaTags({ tags }: { tags: ItemTaxonomia[] }) {
       <NovoItem
         rotulo="Criar tag"
         espaco="Nome da tag"
-        aoCriar={(nome) => criarTag(nome)}
+        comSlug
+        aoCriar={(nome, form) =>
+          criarTag(
+            nome,
+            String(new FormData(form).get("slug") ?? "").trim() || undefined,
+          )
+        }
       />
 
       {/* São centenas de tags: sem busca a lista é inutilizável. */}
@@ -143,7 +160,8 @@ export function AbaTags({ tags }: { tags: ItemTaxonomia[] }) {
 
       <ListaEditavel
         itens={filtradas}
-        aoRenomear={renomearTag}
+        comSlug
+        aoRenomear={(id, dados) => renomearTag(id, dados)}
         aoExcluir={excluirTag}
         rotuloUso={(uso) =>
           uso === 0 ? "sem uso" : `${uso} ${uso === 1 ? "uso" : "usos"}`

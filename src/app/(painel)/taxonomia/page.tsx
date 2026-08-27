@@ -96,6 +96,7 @@ export default async function PaginaTaxonomia({
           tags={tags.map((tag) => ({
             id: tag.id,
             nome: tag.nome,
+            slug: tag.slug,
             uso: (tag.totalConteudos ?? 0) + (tag.totalTrilhas ?? 0),
           }))}
         />

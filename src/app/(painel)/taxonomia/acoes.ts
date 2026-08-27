@@ -53,12 +53,15 @@ async function chamar(
 
 /* ---------------- categorias ---------------- */
 
-export async function criarCategoria(nome: string) {
-  return chamar("/categorias/create", "POST", { nome });
+export async function criarCategoria(nome: string, slug?: string) {
+  return chamar("/categorias/create", "POST", { nome, slug });
 }
 
-export async function renomearCategoria(id: number, nome: string) {
-  return chamar(`/categorias/${id}`, "PUT", { nome });
+export async function renomearCategoria(
+  id: number,
+  dados: { nome: string; slug?: string },
+) {
+  return chamar(`/categorias/${id}`, "PUT", dados);
 }
 
 export async function excluirCategoria(id: number) {
@@ -67,13 +70,17 @@ export async function excluirCategoria(id: number) {
 
 /* ---------------- subcategorias ---------------- */
 
-export async function criarSubcategoria(nome: string, categoriaId: number) {
-  return chamar("/subcategorias/create", "POST", { nome, categoriaId });
+export async function criarSubcategoria(
+  nome: string,
+  categoriaId: number,
+  slug?: string,
+) {
+  return chamar("/subcategorias/create", "POST", { nome, categoriaId, slug });
 }
 
 export async function atualizarSubcategoria(
   id: number,
-  dados: { nome?: string; categoriaId?: number },
+  dados: { nome?: string; slug?: string; categoriaId?: number },
 ) {
   return chamar(`/subcategorias/${id}`, "PUT", dados);
 }
@@ -89,12 +96,12 @@ export async function excluirSubcategoria(id: number) {
 
 /* ---------------- tags ---------------- */
 
-export async function criarTag(nome: string) {
-  return chamar("/tags", "POST", { nome });
+export async function criarTag(nome: string, slug?: string) {
+  return chamar("/tags", "POST", { nome, slug });
 }
 
-export async function renomearTag(id: number, nome: string) {
-  return chamar(`/tags/${id}`, "PATCH", { nome });
+export async function renomearTag(id: number, dados: { nome: string; slug?: string }) {
+  return chamar(`/tags/${id}`, "PATCH", dados);
 }
 
 /** Seguro: o vínculo com conteúdo é `Cascade`, então só desassocia. */

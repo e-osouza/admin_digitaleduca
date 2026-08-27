@@ -91,6 +91,7 @@ export interface Subcategoria {
 export interface Tag {
   id: number;
   nome: string;
+  slug: string;
   createdAt: string;
   updatedAt: string;
   /** Presente em `GET /tags` desde 19/08/2026. */

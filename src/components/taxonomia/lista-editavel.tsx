@@ -28,9 +28,10 @@ export function ListaEditavel({
   rotuloUso,
   vazio,
   extra,
+  comSlug = false,
 }: {
   itens: ItemTaxonomia[];
-  aoRenomear: (id: number, nome: string) => Promise<Resultado>;
+  aoRenomear: (id: number, dados: { nome: string; slug?: string }) => Promise<Resultado>;
   aoExcluir: (id: number) => Promise<Resultado>;
   /** Texto de confirmação. Recebe o item para poder citar o número de usos. */
   avisoExclusao: (item: ItemTaxonomia) => ReactNode;
@@ -38,6 +39,8 @@ export function ListaEditavel({
   vazio: string;
   /** Coluna adicional, ex.: a categoria de uma subcategoria. */
   extra?: (item: ItemTaxonomia) => ReactNode;
+  /** Mostra e edita o slug — categorias, subcategorias e tags. */
+  comSlug?: boolean;
 }) {
   const [erro, setErro] = useState<string | null>(null);
 
@@ -71,6 +74,7 @@ export function ListaEditavel({
             avisoExclusao={avisoExclusao}
             rotuloUso={rotuloUso}
             extra={extra}
+            comSlug={comSlug}
             aoFalhar={setErro}
           />
         ))}
@@ -86,14 +90,16 @@ function Linha({
   avisoExclusao,
   rotuloUso,
   extra,
+  comSlug = false,
   aoFalhar,
 }: {
   item: ItemTaxonomia;
-  aoRenomear: (id: number, nome: string) => Promise<Resultado>;
+  aoRenomear: (id: number, dados: { nome: string; slug?: string }) => Promise<Resultado>;
   aoExcluir: (id: number) => Promise<Resultado>;
   avisoExclusao: (item: ItemTaxonomia) => ReactNode;
   rotuloUso: (uso: number) => string;
   extra?: (item: ItemTaxonomia) => ReactNode;
+  comSlug?: boolean;
   aoFalhar: (mensagem: string) => void;
 }) {
   const router = useRouter();
@@ -103,17 +109,23 @@ function Linha({
 
   async function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    const nome = String(
-      new FormData(evento.currentTarget).get("nome") ?? "",
-    ).trim();
+    const dados = new FormData(evento.currentTarget);
+    const nome = String(dados.get("nome") ?? "").trim();
+    const slug = comSlug
+      ? String(dados.get("slug") ?? "").trim() || undefined
+      : undefined;
 
-    if (!nome || nome === item.nome) {
+    if (!nome) return;
+
+    // Nada mudou (nem nome, nem slug): fecha sem chamar a API.
+    const slugAtual = item.slug ?? "";
+    if (nome === item.nome && (slug ?? slugAtual) === slugAtual) {
       setEditando(false);
       return;
     }
 
     setOcupado(true);
-    const resultado = await aoRenomear(item.id, nome);
+    const resultado = await aoRenomear(item.id, { nome, slug });
     setOcupado(false);
 
     if (!resultado.ok) {
@@ -142,29 +154,41 @@ function Linha({
   if (editando) {
     return (
       <li className="p-2">
-        <form onSubmit={salvar} className="flex items-center gap-2">
-          <input
-            name="nome"
-            defaultValue={item.nome}
-            autoFocus
-            required
-            className={`${CONTROLE} flex-1`}
-          />
-          <button
-            type="submit"
-            disabled={ocupado}
-            className="text-acento shrink-0 text-sm font-semibold disabled:opacity-60"
-          >
-            {ocupado ? "Salvando…" : "Salvar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditando(false)}
-            disabled={ocupado}
-            className="text-texto-2 shrink-0 text-sm"
-          >
-            Cancelar
-          </button>
+        <form onSubmit={salvar} className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              name="nome"
+              defaultValue={item.nome}
+              autoFocus
+              required
+              placeholder="Nome"
+              className={`${CONTROLE} flex-1`}
+            />
+            <button
+              type="submit"
+              disabled={ocupado}
+              className="text-acento shrink-0 text-sm font-semibold disabled:opacity-60"
+            >
+              {ocupado ? "Salvando…" : "Salvar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditando(false)}
+              disabled={ocupado}
+              className="text-texto-2 shrink-0 text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          {comSlug && (
+            <input
+              name="slug"
+              defaultValue={item.slug ?? ""}
+              placeholder="slug (vazio = gerado do nome)"
+              className={`${CONTROLE} text-texto-2 text-xs`}
+            />
+          )}
         </form>
       </li>
     );
@@ -235,12 +259,15 @@ export function NovoItem({
   espaco,
   aoCriar,
   children,
+  comSlug = false,
 }: {
   rotulo: string;
   espaco: string;
   aoCriar: (nome: string, formulario: HTMLFormElement) => Promise<Resultado>;
   /** Campos extras, ex.: o seletor de categoria da subcategoria. */
   children?: ReactNode;
+  /** Mostra um campo de slug opcional (categorias/subcategorias). */
+  comSlug?: boolean;
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
@@ -275,6 +302,13 @@ export function NovoItem({
           placeholder={espaco}
           className={`${CONTROLE} min-w-48 flex-1`}
         />
+        {comSlug && (
+          <input
+            name="slug"
+            placeholder="slug (opcional)"
+            className={`${CONTROLE} min-w-40 flex-1`}
+          />
+        )}
         {children}
         <button
           type="submit"
