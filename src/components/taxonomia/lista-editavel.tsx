@@ -9,6 +9,8 @@ export type Resultado = { ok: true } | { ok: false; erro: string };
 export type ItemTaxonomia = {
   id: number;
   nome: string;
+  /** Slug para URL, gerado do nome. Exibido, não editável. */
+  slug?: string;
   /** Quantos conteúdos dependem deste item. */
   uso: number;
 };
@@ -196,8 +198,11 @@ function Linha({
 
   return (
     <li className="hover:bg-superficie-2 flex items-center gap-3 px-3 py-2.5 text-sm">
-      <span className="text-texto min-w-0 flex-1 truncate font-medium">
-        {item.nome}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-texto truncate font-medium">{item.nome}</span>
+        {item.slug && (
+          <span className="text-texto-3 truncate text-xs">/{item.slug}</span>
+        )}
       </span>
 
       {extra && (

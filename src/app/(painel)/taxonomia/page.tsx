@@ -68,6 +68,7 @@ export default async function PaginaTaxonomia({
           categorias={categorias.map((c) => ({
             id: c.id,
             nome: c.nome,
+            slug: c.slug,
             uso: c.conteudos,
           }))}
         />
@@ -78,6 +79,7 @@ export default async function PaginaTaxonomia({
           subcategorias={subcategorias.map((sub) => ({
             id: sub.id,
             nome: sub.nome,
+            slug: sub.slug,
             uso: sub._count?.conteudos ?? 0,
             /*
              * O vínculo é N:N — 5 das 8 subcategorias pertencem a mais de uma

@@ -67,6 +67,8 @@ export interface LoginResponse {
 export interface Categoria {
   id: number;
   nome: string;
+  /** Slug para URL amigável, gerado do nome. */
+  slug: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +76,8 @@ export interface Categoria {
 export interface Subcategoria {
   id: number;
   nome: string;
+  /** Slug para URL amigável, gerado do nome. */
+  slug: string;
   createdAt: string;
   updatedAt: string;
   categorias?: {
