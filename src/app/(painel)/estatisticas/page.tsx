@@ -265,6 +265,7 @@ export default async function PaginaEstatisticas({
           descricao={`${numeroBR(acesso.pagantesTotal)} pagantes · ${numeroBR(
             gratuitosTotal,
           )} gratuitos (cortesia + club)`}
+          larga
           altura={200}
           dados={tipoAcesso}
           colunas={[
