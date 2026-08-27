@@ -123,6 +123,19 @@ export default async function PaginaEstatisticas({
     slot: indice,
   }));
 
+  /*
+    Tipo de acesso agora: a cor pertence ao tipo, não à ordem (slot fixo).
+    Pagante de verdade = cartão + manual; cortesia e club são gratuitos.
+  */
+  const acesso = acervo.acessoAtivo;
+  const tipoAcesso = [
+    { rotulo: "Cartão", total: acesso.gateway.total, slot: 0 },
+    { rotulo: "Manual", total: acesso.manual.total, slot: 1 },
+    { rotulo: "Cortesia", total: acesso.cortesia.total, slot: 2 },
+    { rotulo: "Club", total: acesso.club.total, slot: 3 },
+  ].filter((linha) => linha.total > 0);
+  const gratuitosTotal = acesso.cortesia.total + acesso.club.total;
+
   const instrutores = topInstrutores.map((l) => ({
     ...l,
     nome: l.instrutor,
@@ -211,12 +224,63 @@ export default async function PaginaEstatisticas({
           apoio={plural(acervo.videos, "aula", "aulas")}
         />
         <Indicador
-          rotulo="Assinaturas ativas"
-          valor={numeroBR(acervo.assinaturasAtivas)}
-          apoio={`${moedaBR(acervo.receitaAtiva)} em vigor`}
+          rotulo="Assinantes pagantes"
+          valor={numeroBR(acesso.pagantesTotal)}
+          apoio={`${moedaBR(acesso.receitaPagante)} em vigor · exclui cortesia e club`}
         />
         <Indicador rotulo="Instrutores" valor={numeroBR(acervo.instrutores)} />
       </GradeIndicadores>
+
+      {/*
+        Tipo de acesso: "Assinaturas ativas" sozinho engana, porque mistura quem
+        paga com cortesia e club (gratuitos). Aqui a separação é explícita — e a
+        soma dos quatro é igual ao total de assinaturas ativas.
+      */}
+      <GradeIndicadores titulo="Tipo de acesso · agora">
+        <Indicador
+          rotulo="Pagantes — cartão"
+          valor={numeroBR(acesso.gateway.total)}
+          apoio={`${moedaBR(acesso.gateway.receita)} · gateway`}
+        />
+        <Indicador
+          rotulo="Pagantes — manual"
+          valor={numeroBR(acesso.manual.total)}
+          apoio={`${moedaBR(acesso.manual.receita)} · PIX/transf./offline`}
+        />
+        <Indicador
+          rotulo="Cortesia"
+          valor={numeroBR(acesso.cortesia.total)}
+          apoio="acesso gratuito"
+        />
+        <Indicador
+          rotulo="Club"
+          valor={numeroBR(acesso.club.total)}
+          apoio="acesso gratuito"
+        />
+      </GradeIndicadores>
+
+      <Bloco titulo="Divisão do acesso ativo">
+        <CartaoGrafico
+          titulo="Pagante x gratuito"
+          descricao={`${numeroBR(acesso.pagantesTotal)} pagantes · ${numeroBR(
+            gratuitosTotal,
+          )} gratuitos (cortesia + club)`}
+          altura={200}
+          dados={tipoAcesso}
+          colunas={[
+            { cabecalho: "Tipo", campo: "rotulo" },
+            { cabecalho: "Ativas", campo: "total", formato: "numero" },
+          ]}
+        >
+          <GraficoPizza
+            dados={tipoAcesso}
+            chaveRotulo="rotulo"
+            chaveValor="total"
+            chaveSlot="slot"
+            rotuloTotal="ativas"
+          />
+        </CartaoGrafico>
+      </Bloco>
 
       {/* ------------------------------ público ----------------------------- */}
 

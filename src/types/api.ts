@@ -655,8 +655,26 @@ export interface EstatisticasPlataforma {
     conteudosPublicados: number;
     videos: number;
     instrutores: number;
+    /** Todas as assinaturas ATIVAS (pagante + cortesia + club), menos sandbox. */
     assinaturasAtivas: number;
     receitaAtiva: number;
+    /**
+     * Assinaturas ativas separadas pelo que são de fato. `gateway` e `manual`
+     * são pagantes; `cortesia` e `club` são acesso gratuito (R$ 0). A soma dos
+     * quatro `total` é igual a `assinaturasAtivas`.
+     */
+    acessoAtivo: {
+      /** Cartão pelo gateway automático (e qualquer método não etiquetado). */
+      gateway: { total: number; receita: number };
+      /** Registrado à mão: PIX, transferência, boleto, offline. */
+      manual: { total: number; receita: number };
+      cortesia: { total: number; receita: number };
+      club: { total: number; receita: number };
+      /** gateway + manual. */
+      pagantesTotal: number;
+      /** Receita em vigor só dos pagantes. */
+      receitaPagante: number;
+    };
   };
 
   resumo: {
