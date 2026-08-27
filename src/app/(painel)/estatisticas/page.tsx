@@ -266,19 +266,19 @@ export default async function PaginaEstatisticas({
             gratuitosTotal,
           )} gratuitos (cortesia + club)`}
           larga
-          altura={200}
+          altura={alturaBarras(tipoAcesso.length)}
           dados={tipoAcesso}
           colunas={[
             { cabecalho: "Tipo", campo: "rotulo" },
             { cabecalho: "Ativas", campo: "total", formato: "numero" },
           ]}
         >
-          <GraficoPizza
+          <GraficoBarras
             dados={tipoAcesso}
             chaveRotulo="rotulo"
             chaveValor="total"
             chaveSlot="slot"
-            rotuloTotal="ativas"
+            larguraRotulo={96}
           />
         </CartaoGrafico>
       </Bloco>
@@ -316,9 +316,7 @@ export default async function PaginaEstatisticas({
             totalDispositivos > 0
               ? `${Math.round((emMobile / totalDispositivos) * 100)}% dos dispositivos registrados são do app mobile.`
               : undefined
-          }
-          altura={200}
-          dados={canais}
+          }          dados={canais}
           colunas={[
             { cabecalho: "Canal", campo: "rotulo" },
             { cabecalho: "Dispositivos", campo: "total", formato: "numero" },
@@ -481,9 +479,7 @@ export default async function PaginaEstatisticas({
 
         <CartaoGrafico
           titulo="Tipos de conteúdo mais acessados"
-          descricao="Horas e conclusões de cada tipo estão na tabela."
-          altura={200}
-          dados={tipos}
+          descricao="Horas e conclusões de cada tipo estão na tabela."          dados={tipos}
           colunas={[
             { cabecalho: "Tipo", campo: "tipo" },
             {
@@ -570,9 +566,7 @@ export default async function PaginaEstatisticas({
 
         <CartaoGrafico
           titulo="Como avaliam as aulas"
-          descricao={`Nota média ${resumo.notaMedia.toFixed(1)} em ${plural(resumo.avaliacoes, "avaliação", "avaliações")}.`}
-          altura={200}
-          dados={notas}
+          descricao={`Nota média ${resumo.notaMedia.toFixed(1)} em ${plural(resumo.avaliacoes, "avaliação", "avaliações")}.`}          dados={notas}
           colunas={[
             { cabecalho: "Nota", campo: "rotulo" },
             { cabecalho: "Avaliações", campo: "total", formato: "numero" },

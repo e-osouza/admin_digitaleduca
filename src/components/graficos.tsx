@@ -130,7 +130,8 @@ export type Coluna = {
 export function CartaoGrafico<T extends Record<string, unknown>>({
   titulo,
   descricao,
-  altura = 260,
+  altura,
+  aspecto,
   larga,
   dados,
   colunas,
@@ -138,7 +139,15 @@ export function CartaoGrafico<T extends Record<string, unknown>>({
 }: {
   titulo: string;
   descricao?: string;
+  /**
+   * Altura fixa em px. Só quando a altura é consequência da quantidade —
+   * barras e rankings, via `alturaBarras`. Sem `altura`, a área do gráfico
+   * deriva a altura da largura (aspect-ratio): card largo fica mais alto
+   * sozinho, sem número mágico.
+   */
   altura?: number;
+  /** Razão largura/altura para os cards sem altura fixa (linha, pizza). */
+  aspecto?: number;
   /** Ocupa as duas colunas da grade. Para rankings longos e séries densas. */
   larga?: boolean;
   dados: T[];
@@ -146,6 +155,17 @@ export function CartaoGrafico<T extends Record<string, unknown>>({
   children: React.ReactNode;
 }) {
   const vazio = dados.length === 0;
+
+  /*
+    Duas famílias de altura: barras/rankings mandam px (a altura É a
+    quantidade); linha e pizza não têm quantidade que dite altura, então a
+    tiram da largura por proporção — um card estreito e um que atravessa a tela
+    ganham a mesma silhueta sem nenhum valor fixo no meio.
+  */
+  const estiloArea: React.CSSProperties =
+    altura != null
+      ? { height: altura }
+      : { aspectRatio: String(aspecto ?? (larga ? 3.4 : 1.9)) };
 
   return (
     <section
@@ -163,13 +183,13 @@ export function CartaoGrafico<T extends Record<string, unknown>>({
       {vazio ? (
         <p
           className="text-texto-3 flex items-center justify-center rounded-lg border border-dashed border-borda-suave text-sm"
-          style={{ height: altura }}
+          style={estiloArea}
         >
           Sem dados no período.
         </p>
       ) : (
         <>
-          <div style={{ height: altura }}>{children}</div>
+          <div style={estiloArea}>{children}</div>
 
           <details className="group">
             <summary className="text-texto-3 hover:text-texto w-fit text-sm transition-colors">
