@@ -228,6 +228,15 @@ export default async function PaginaEstatisticas({
           valor={numeroBR(acesso.pagantesTotal)}
           apoio={`${moedaBR(acesso.receitaPagante)} em vigor · exclui cortesia e club`}
         />
+        <Indicador
+          rotulo="Horas de conteúdo"
+          valor={horasBR(acervo.horasConteudo)}
+          apoio={`${numeroBR(acervo.videos)} ${plural(
+            acervo.videos,
+            "vídeo",
+            "vídeos",
+          )}`}
+        />
         <Indicador rotulo="Instrutores" valor={numeroBR(acervo.instrutores)} />
       </GradeIndicadores>
 

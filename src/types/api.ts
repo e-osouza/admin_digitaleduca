@@ -654,6 +654,8 @@ export interface EstatisticasPlataforma {
     usuarios: number;
     conteudosPublicados: number;
     videos: number;
+    /** Soma da duração de todas as aulas/vídeos, em horas. */
+    horasConteudo: number;
     instrutores: number;
     /** Todas as assinaturas ATIVAS (pagante + cortesia + club), menos sandbox. */
     assinaturasAtivas: number;
