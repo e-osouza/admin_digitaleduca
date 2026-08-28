@@ -231,11 +231,7 @@ export default async function PaginaEstatisticas({
         <Indicador
           rotulo="Horas de conteúdo"
           valor={horasBR(acervo.horasConteudo)}
-          apoio={`${numeroBR(acervo.videos)} ${plural(
-            acervo.videos,
-            "vídeo",
-            "vídeos",
-          )}`}
+          apoio={plural(acervo.videos, "vídeo", "vídeos")}
         />
         <Indicador rotulo="Instrutores" valor={numeroBR(acervo.instrutores)} />
       </GradeIndicadores>
