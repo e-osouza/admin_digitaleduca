@@ -38,7 +38,7 @@ export async function TelaNovoConteudo({ tipo }: { tipo: TipoConteudo }) {
     ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
       <div>
         <Link
           href={origem.volta}

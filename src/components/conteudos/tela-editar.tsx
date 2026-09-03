@@ -123,7 +123,7 @@ export async function TelaEditarConteudo({
     );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="min-w-0">
         <Link
           href={rotaDoTipo(conteudo.tipo)}

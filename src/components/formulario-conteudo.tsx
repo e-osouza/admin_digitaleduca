@@ -304,18 +304,6 @@ export function FormularioConteudo({
           </Campo>
         </div>
 
-        {/*
-          Só na criação: `dataCriacao` não existe no DTO de atualização, e a
-          validação estrita do PUT recusaria o campo com 400.
-        */}
-        {!editando && (
-          <Campo
-            rotulo="Data de publicação"
-            ajuda="Aparece como data do conteúdo na plataforma. Em branco, usa hoje."
-          >
-            <input type="date" name="dataCriacao" className={CONTROLE} />
-          </Campo>
-        )}
 
         <Campo
           rotulo="Tags"
@@ -496,6 +484,7 @@ export function FormularioConteudo({
           conteudoId={conteudo?.id}
           publicadoAtual={conteudo?.publicado ?? false}
           enviando={enviando}
+          dataCriacaoInicial={paraData(conteudo?.dataCriacao)}
           aoRascunho={() => {
             rascunhoRef.current = true;
           }}
