@@ -15,7 +15,6 @@ import {
   type ModuloNovo,
 } from "@/components/compositor-modulos";
 import {
-  BOTAO_PRIMARIO,
   BOTAO_TEXTO,
   CONTROLE,
   Campo,
@@ -23,7 +22,7 @@ import {
   Secao,
 } from "@/components/campos-formulario";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
-import { CampoPublicar } from "@/components/conteudos/campo-publicar";
+import { BlocoPublicar } from "@/components/conteudos/bloco-publicar";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
@@ -118,12 +117,15 @@ export function FormularioConteudo({
 
     // Checkbox ausente não vai no FormData; a API precisa do booleano.
     dados.set("destaque", dados.get("destaque") ? "true" : "false");
+    /*
+      Publicar x rascunho vem do botão clicado (bloco Publicar), não de um
+      checkbox. "Salvar como rascunho" força rascunho; o botão primário publica
+      — mas na CRIAÇÃO o conteúdo nasce sempre rascunho (o backend também força),
+      porque o vídeo ainda está processando.
+    */
     const rascunho = rascunhoRef.current;
     rascunhoRef.current = false;
-    dados.set(
-      "publicado",
-      rascunho ? "false" : dados.get("publicado") ? "true" : "false",
-    );
+    dados.set("publicado", !rascunho && editando ? "true" : "false");
 
     if (gratuitoTipo !== "TEMPORARIO") dados.delete("gratuitoAte");
 
@@ -212,7 +214,8 @@ export function FormularioConteudo({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="flex min-w-0 flex-col gap-6">
       <form
         id="formulario-conteudo"
         onSubmit={enviar}
@@ -326,11 +329,6 @@ export function FormularioConteudo({
           />
         </Campo>
 
-        <CampoPublicar
-          conteudoId={conteudo?.id}
-          publicadoAtual={conteudo?.publicado ?? false}
-        />
-
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -401,33 +399,6 @@ export function FormularioConteudo({
             className={`${CONTROLE} resize-y`}
           />
         </Campo>
-      </Secao>
-
-      <Secao
-        titulo="Imagens"
-        ajuda={
-          editando
-            ? "Envie um arquivo apenas para substituir a imagem atual."
-            : undefined
-        }
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoImagemBiblioteca
-            nome="thumbnailDesktop"
-            rotulo="Desktop (horizontal)"
-            atual={conteudo?.thumbnailDesktop}
-          />
-          <CampoImagemBiblioteca
-            nome="thumbnailMobile"
-            rotulo="Mobile (vertical)"
-            atual={conteudo?.thumbnailMobile}
-          />
-          <CampoImagemBiblioteca
-            nome="thumbnailDestaque"
-            rotulo="Destaque"
-            atual={conteudo?.thumbnailDestaque}
-          />
-        </div>
       </Secao>
 
       {!editando && (
@@ -502,41 +473,8 @@ export function FormularioConteudo({
       )}
 
 
-      {/*
-        Barra de ações no fim da página. O botão de salvar vive fora do <form>
-        e o alcança pelo atributo `form` — assim as seções acima podem ter
-        formulários próprios sem aninhamento inválido.
-      */}
-      <div className="border-borda-suave flex flex-wrap items-center gap-3 border-t pt-5">
-        <button
-          type="submit"
-          form="formulario-conteudo"
-          disabled={enviando}
-          onClick={() => {
-            rascunhoRef.current = false;
-          }}
-          className={BOTAO_PRIMARIO}
-        >
-          {enviando
-            ? "Salvando…"
-            : editando
-              ? "Salvar alterações"
-              : "Criar conteúdo"}
-        </button>
-
-        <button
-          type="submit"
-          form="formulario-conteudo"
-          disabled={enviando}
-          onClick={() => {
-            rascunhoRef.current = true;
-          }}
-          className={BOTAO_TEXTO}
-          title="Salva sem publicar — você continua depois e publica quando o vídeo estiver pronto."
-        >
-          Salvar como rascunho
-        </button>
-
+      {/* Rodapé da coluna principal: cancelar e excluir. Publicar mora na sidebar. */}
+      <div className="border-borda-suave flex items-center gap-3 border-t pt-5">
         <button
           type="button"
           onClick={() => router.push("/conteudos")}
@@ -548,6 +486,50 @@ export function FormularioConteudo({
 
         {acaoExcluir && <div className="ml-auto">{acaoExcluir}</div>}
       </div>
+      </div>
+
+      {/* ------------------------------ sidebar ----------------------------- */}
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-6">
+        <BlocoPublicar
+          formId="formulario-conteudo"
+          editando={editando}
+          conteudoId={conteudo?.id}
+          publicadoAtual={conteudo?.publicado ?? false}
+          enviando={enviando}
+          aoRascunho={() => {
+            rascunhoRef.current = true;
+          }}
+          aoSalvar={() => {
+            rascunhoRef.current = false;
+          }}
+        />
+
+        <section className="border-borda bg-superficie overflow-hidden rounded-xl border">
+          <header className="border-borda-suave border-b px-4 py-3">
+            <h3 className="text-texto font-semibold">Imagens de capa</h3>
+          </header>
+          <div className="flex flex-col gap-4 p-4">
+            <CampoImagemBiblioteca
+              nome="thumbnailDesktop"
+              rotulo="Desktop (horizontal)"
+              atual={conteudo?.thumbnailDesktop}
+              form="formulario-conteudo"
+            />
+            <CampoImagemBiblioteca
+              nome="thumbnailMobile"
+              rotulo="Mobile (vertical)"
+              atual={conteudo?.thumbnailMobile}
+              form="formulario-conteudo"
+            />
+            <CampoImagemBiblioteca
+              nome="thumbnailDestaque"
+              rotulo="Destaque"
+              atual={conteudo?.thumbnailDestaque}
+              form="formulario-conteudo"
+            />
+          </div>
+        </section>
+      </aside>
     </div>
   );
 }

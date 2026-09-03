@@ -17,11 +17,14 @@ export function CampoImagemBiblioteca({
   nome,
   rotulo,
   atual,
+  form,
 }: {
   /** Campo do FormData que recebe o caminho da imagem. */
   nome: string;
   rotulo: string;
   atual?: string | null;
+  /** Id do <form> a associar quando o campo vive fora dele (ex.: na sidebar). */
+  form?: string;
 }) {
   const [valor, setValor] = useState<string>(atual ?? "");
   const [aberto, setAberto] = useState(false);
@@ -58,7 +61,7 @@ export function CampoImagemBiblioteca({
       )}
 
       {/* Vai como texto no FormData; vazio não é enviado (mantém a atual na edição). */}
-      <input type="hidden" name={nome} value={valor} />
+      <input type="hidden" name={nome} value={valor} form={form} />
 
       <ModalMidia
         aberto={aberto}
