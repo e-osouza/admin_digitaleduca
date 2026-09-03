@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { buscarVideosNaBiblioteca } from "@/app/(painel)/conteudos/acoes-aulas";
-import { CONTROLE } from "@/components/campos-formulario";
+import { CAMPO_ARQUIVO, CONTROLE } from "@/components/campos-formulario";
 import { CampoUploadVimeo } from "@/components/conteudos/campo-upload-vimeo";
+import { useUploadVideo } from "@/components/conteudos/upload-video-context";
 import { duracaoLegivel } from "@/lib/formato";
 
 type Aba = "biblioteca" | "enviar";
@@ -99,7 +100,7 @@ export function ModalVideoMidia({
           {aba === "biblioteca" ? (
             <AbaBiblioteca aoEscolher={aoEscolher} />
           ) : (
-            <AbaEnviar aoEscolher={aoEscolher} />
+            <AbaEnviar aoEscolher={aoEscolher} aoFechar={aoFechar} />
           )}
         </div>
       </div>
@@ -163,7 +164,45 @@ function AbaBiblioteca({ aoEscolher }: { aoEscolher: (url: string) => void }) {
   );
 }
 
-function AbaEnviar({ aoEscolher }: { aoEscolher: (url: string) => void }) {
+function AbaEnviar({
+  aoEscolher,
+  aoFechar,
+}: {
+  aoEscolher: (url: string) => void;
+  aoFechar: () => void;
+}) {
+  const upload = useUploadVideo();
+
+  // Com provedor (formulário de publicação): o modal fecha na hora e o envio
+  // segue na barra do topo da página.
+  async function aoSelecionar(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo || !upload) return;
+    aoFechar();
+    const url = await upload.iniciar(arquivo);
+    if (url) aoEscolher(url);
+  }
+
+  if (upload) {
+    return (
+      <div className="flex flex-col gap-3 py-2">
+        <p className="text-texto-2 text-sm">
+          O envio começa ao selecionar o arquivo. O modal fecha e o progresso
+          aparece no topo da página — você pode continuar preenchendo enquanto
+          sobe.
+        </p>
+        <input
+          type="file"
+          accept="video/*"
+          onChange={aoSelecionar}
+          className={CAMPO_ARQUIVO}
+        />
+      </div>
+    );
+  }
+
+  // Sem provedor (ex.: trocar vídeo na edição): o envio acontece no próprio modal.
   return (
     <div className="flex flex-col gap-3 py-2">
       <p className="text-texto-2 text-sm">

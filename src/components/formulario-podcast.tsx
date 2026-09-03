@@ -8,6 +8,8 @@ import {
 } from "@/app/(painel)/conteudos/acoes";
 import { vincularVideoExistente } from "@/app/(painel)/conteudos/acoes-aulas";
 import { BlocoPublicar } from "@/components/conteudos/bloco-publicar";
+import { BarraUploadVideo } from "@/components/conteudos/barra-upload-video";
+import { UploadVideoProvider } from "@/components/conteudos/upload-video-context";
 import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
@@ -219,6 +221,8 @@ export function FormularioPodcast({
   }
 
   return (
+    <UploadVideoProvider>
+      <BarraUploadVideo />
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="flex min-w-0 flex-col gap-6">
       <form
@@ -436,5 +440,6 @@ export function FormularioPodcast({
         </section>
       </aside>
     </div>
+    </UploadVideoProvider>
   );
 }
