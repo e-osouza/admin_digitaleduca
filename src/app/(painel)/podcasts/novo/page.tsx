@@ -19,7 +19,7 @@ export default async function PaginaNovoPodcast() {
     ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
       <div>
         <Link
           href="/podcasts"

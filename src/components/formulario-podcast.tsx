@@ -7,11 +7,10 @@ import {
   criarConteudo,
 } from "@/app/(painel)/conteudos/acoes";
 import { vincularVideoExistente } from "@/app/(painel)/conteudos/acoes-aulas";
-import { CampoPublicar } from "@/components/conteudos/campo-publicar";
+import { BlocoPublicar } from "@/components/conteudos/bloco-publicar";
 import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
-  BOTAO_PRIMARIO,
   BOTAO_TEXTO,
   CONTROLE,
   Campo,
@@ -140,12 +139,11 @@ export function FormularioPodcast({
 
     // "Salvar como rascunho" força rascunho e dispensa o vídeo; o botão normal
     // respeita o checkbox (que na criação nem existe → rascunho de qualquer jeito).
+    // Publicar x rascunho vem do botão (bloco Publicar), não de um checkbox.
+    // Na criação o episódio nasce sempre rascunho (o backend também força).
     const rascunho = rascunhoRef.current;
     rascunhoRef.current = false;
-    dados.set(
-      "publicado",
-      rascunho ? "false" : dados.get("publicado") ? "true" : "false",
-    );
+    dados.set("publicado", !rascunho && editando ? "true" : "false");
 
     // Capa única (quadrada): replica a mesma arte (caminho da biblioteca) nos 3
     // campos de thumbnail que a plataforma lê em layouts diferentes, para nenhum
@@ -221,7 +219,8 @@ export function FormularioPodcast({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="flex min-w-0 flex-col gap-6">
       <form
         id="formulario-podcast"
         onSubmit={enviar}
@@ -280,15 +279,6 @@ export function FormularioPodcast({
           </Campo>
         </div>
 
-        {!editando && (
-          <Campo
-            rotulo="Data de publicação"
-            ajuda="Em branco, usa hoje."
-          >
-            <input type="date" name="dataCriacao" className={CONTROLE} />
-          </Campo>
-        )}
-
         <Campo
           rotulo="Tags"
           ajuda="Separadas por vírgula. Tags novas são criadas automaticamente."
@@ -300,11 +290,6 @@ export function FormularioPodcast({
               .join(", ")}
           />
         </Campo>
-
-        <CampoPublicar
-          conteudoId={podcast?.id}
-          publicadoAtual={podcast?.publicado ?? false}
-        />
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -377,28 +362,6 @@ export function FormularioPodcast({
         </div>
       </Secao>
 
-      <Secao
-        titulo="Capa"
-        ajuda={
-          editando
-            ? "Arte quadrada (1:1). Envie um arquivo apenas para substituir a atual."
-            : "Uma única arte quadrada (1:1) — é a capa do episódio em todo o app."
-        }
-      >
-        {/*
-          Podcast tem uma capa só: quadrada. A mesma arte é replicada no submit
-          para os três campos de thumbnail que a plataforma lê em layouts
-          diferentes (card quadrado, card deitado e destaque), então nada some.
-        */}
-        <div className="max-w-xs">
-          <CampoImagemBiblioteca
-            nome="thumbnailMobile"
-            rotulo="Capa do episódio (quadrada 1:1)"
-            atual={podcast?.thumbnailMobile}
-          />
-        </div>
-      </Secao>
-
       {!editando && (
         <Secao
           titulo="Vídeo do episódio"
@@ -421,41 +384,8 @@ export function FormularioPodcast({
         </p>
       )}
 
-      {/*
-        Barra de ações no fim da página. O botão de salvar vive fora do <form>
-        e o alcança pelo atributo `form` — assim as seções acima podem ter
-        formulários próprios sem aninhamento inválido.
-      */}
-      <div className="border-borda-suave flex flex-wrap items-center gap-3 border-t pt-5">
-        <button
-          type="submit"
-          form="formulario-podcast"
-          disabled={enviando}
-          onClick={() => {
-            rascunhoRef.current = false;
-          }}
-          className={BOTAO_PRIMARIO}
-        >
-          {enviando
-            ? "Salvando…"
-            : editando
-              ? "Salvar alterações"
-              : "Criar episódio"}
-        </button>
-
-        <button
-          type="submit"
-          form="formulario-podcast"
-          disabled={enviando}
-          onClick={() => {
-            rascunhoRef.current = true;
-          }}
-          className={BOTAO_TEXTO}
-          title="Salva sem publicar — o vídeo pode ser anexado depois, na edição."
-        >
-          Salvar como rascunho
-        </button>
-
+      {/* Rodapé da coluna principal: cancelar e excluir. Publicar mora na sidebar. */}
+      <div className="border-borda-suave flex items-center gap-3 border-t pt-5">
         <button
           type="button"
           onClick={() => router.push("/podcasts")}
@@ -467,6 +397,44 @@ export function FormularioPodcast({
 
         {acaoExcluir && <div className="ml-auto">{acaoExcluir}</div>}
       </div>
+      </div>
+
+      {/* ------------------------------ sidebar ----------------------------- */}
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-6">
+        <BlocoPublicar
+          formId="formulario-podcast"
+          editando={editando}
+          conteudoId={podcast?.id}
+          publicadoAtual={podcast?.publicado ?? false}
+          enviando={enviando}
+          dataCriacaoInicial={paraData(podcast?.dataCriacao)}
+          rotuloCriar="Criar episódio"
+          aoRascunho={() => {
+            rascunhoRef.current = true;
+          }}
+          aoSalvar={() => {
+            rascunhoRef.current = false;
+          }}
+        />
+
+        <section className="border-borda bg-superficie overflow-hidden rounded-xl border">
+          <header className="border-borda-suave border-b px-4 py-3">
+            <h3 className="text-texto font-semibold">Capa do episódio</h3>
+          </header>
+          <div className="flex flex-col gap-2 p-4">
+            {/*
+              Podcast tem uma capa só, quadrada. A mesma arte é replicada no
+              submit para os três campos de thumbnail que a plataforma lê.
+            */}
+            <CampoImagemBiblioteca
+              nome="thumbnailMobile"
+              rotulo="Arte quadrada (1:1)"
+              atual={podcast?.thumbnailMobile}
+              form="formulario-podcast"
+            />
+          </div>
+        </section>
+      </aside>
     </div>
   );
 }
