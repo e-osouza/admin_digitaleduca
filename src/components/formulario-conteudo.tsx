@@ -489,6 +489,7 @@ export function FormularioConteudo({
           publicadoAtual={conteudo?.publicado ?? false}
           enviando={enviando}
           dataCriacaoInicial={paraData(conteudo?.dataCriacao)}
+          comVideo={tipo !== "TRILHA"}
           aoRascunho={() => {
             rascunhoRef.current = true;
           }}

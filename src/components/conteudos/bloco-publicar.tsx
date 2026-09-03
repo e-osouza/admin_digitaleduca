@@ -39,6 +39,7 @@ export function BlocoPublicar({
   aoSalvar,
   dataCriacaoInicial,
   rotuloCriar = "Criar conteúdo",
+  comVideo = true,
 }: {
   formId: string;
   editando: boolean;
@@ -50,10 +51,15 @@ export function BlocoPublicar({
   /** Data já cadastrada (edição), em ISO/yyyy-mm-dd. */
   dataCriacaoInicial?: string;
   rotuloCriar?: string;
+  /**
+   * Mostra o estado do vídeo e trava "Publicar" enquanto o Vimeo processa.
+   * Falso para tipos sem vídeo próprio (trilha), que também não têm essa trava.
+   */
+  comVideo?: boolean;
 }) {
   const [prontidao, setProntidao] = useState<Prontidao | null>(null);
 
-  const vigiar = editando && !publicadoAtual && !!conteudoId;
+  const vigiar = comVideo && editando && !publicadoAtual && !!conteudoId;
 
   useEffect(() => {
     if (!vigiar || !conteudoId) return;
