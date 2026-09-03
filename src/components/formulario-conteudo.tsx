@@ -23,6 +23,7 @@ import {
   Secao,
 } from "@/components/campos-formulario";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
+import { CampoPublicar } from "@/components/conteudos/campo-publicar";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
 import { enviarParaVimeo } from "@/lib/upload-vimeo";
 import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria, TipoConteudo } from "@/types/api";
@@ -361,23 +362,10 @@ export function FormularioConteudo({
           />
         </Campo>
 
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="publicado"
-              defaultChecked={conteudo?.publicado ?? true}
-              className="accent-acento h-4 w-4"
-            />
-            <span className="text-texto-2">
-              Publicado — aparece no app
-            </span>
-          </label>
-          <p className="text-texto-3 text-xs">
-            Desmarcado vira rascunho: some das listagens, da busca e do
-            detalhe para quem não é da equipe. Continua aqui no painel.
-          </p>
-        </div>
+        <CampoPublicar
+          conteudoId={conteudo?.id}
+          publicadoAtual={conteudo?.publicado ?? false}
+        />
 
         <label className="flex items-center gap-2 text-sm">
           <input

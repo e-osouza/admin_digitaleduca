@@ -418,3 +418,29 @@ export async function salvarItensDoConteudo(
   revalidatePath("/trilhas");
   return { ok: true, id };
 }
+
+/**
+ * Estado de prontidão dos vídeos de um conteúdo (para liberar o "Publicado").
+ * Retorna `null` se a sessão expirou ou a rota falhar — o chamador trata como
+ * "ainda não sei", sem travar a tela.
+ */
+export async function obterProntidao(id: number): Promise<{
+  pronto: boolean;
+  total: number;
+  prontos: number;
+  semVideo: boolean;
+  pendentes: { id: number; titulo: string }[];
+} | null> {
+  const token = await lerToken();
+  if (!token) return null;
+  try {
+    const resposta = await fetch(`${API_URL}/conteudos/${id}/prontidao`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!resposta.ok) return null;
+    return await resposta.json();
+  } catch {
+    return null;
+  }
+}

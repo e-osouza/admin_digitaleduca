@@ -12,6 +12,7 @@ import {
   vincularVideoExistente,
 } from "@/app/(painel)/conteudos/acoes-aulas";
 import { duracaoLegivel } from "@/lib/formato";
+import { CampoPublicar } from "@/components/conteudos/campo-publicar";
 import {
   BOTAO_PRIMARIO,
   BOTAO_TEXTO,
@@ -374,21 +375,10 @@ export function FormularioPodcast({
           />
         </Campo>
 
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="publicado"
-              defaultChecked={podcast?.publicado ?? true}
-              className="accent-acento h-4 w-4"
-            />
-            <span className="text-texto-2">Publicado — aparece no app</span>
-          </label>
-          <p className="text-texto-3 text-xs">
-            Desmarcado vira rascunho: some das listagens, da busca e do detalhe
-            para quem não é da equipe. Continua aqui no painel.
-          </p>
-        </div>
+        <CampoPublicar
+          conteudoId={podcast?.id}
+          publicadoAtual={podcast?.publicado ?? false}
+        />
 
         <label className="flex items-center gap-2 text-sm">
           <input
