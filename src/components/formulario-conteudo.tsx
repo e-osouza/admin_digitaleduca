@@ -25,10 +25,7 @@ import {
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { CampoPublicar } from "@/components/conteudos/campo-publicar";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
-import {
-  CampoUploadVimeo,
-  type EstadoUpload,
-} from "@/components/conteudos/campo-upload-vimeo";
+import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
 import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria, TipoConteudo } from "@/types/api";
 
@@ -84,11 +81,6 @@ export function FormularioConteudo({
 
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  // Estados dos uploads (começam ao selecionar): travam o botão de salvar.
-  const [estadoVideo, setEstadoVideo] = useState<EstadoUpload>("vazio");
-  const [estadoTeaser, setEstadoTeaser] = useState<EstadoUpload>("vazio");
-  const enviandoVideo =
-    estadoVideo === "enviando" || estadoTeaser === "enviando";
   /* "Salvar como rascunho" (true) força rascunho; lido no submit e resetado. */
   const rascunhoRef = useRef(false);
   const [gratuitoTipo, setGratuitoTipo] = useState(
@@ -476,23 +468,17 @@ export function FormularioConteudo({
           {!comModulos && (
             <Secao
               titulo="Vídeo do conteúdo"
-              ajuda="O vídeo que o aluno assiste. O envio começa ao selecionar; opcional aqui — dá para enviar depois na edição."
+              ajuda="O vídeo que o aluno assiste. Escolha da biblioteca ou envie um novo; opcional aqui — dá para definir depois na edição."
             >
-              <CampoUploadVimeo
-                nome="videoUrl"
-                aoMudarEstado={setEstadoVideo}
-              />
+              <CampoVideoBiblioteca nome="videoUrl" />
             </Secao>
           )}
 
           <Secao
             titulo="Vídeo introdutório"
-            ajuda="Opcional. É o teaser da página do conteúdo, não o vídeo que o aluno assiste. O envio começa ao selecionar."
+            ajuda="Opcional. É o teaser da página do conteúdo, não o vídeo que o aluno assiste."
           >
-            <CampoUploadVimeo
-              nome="videoIntrodutorioUrl"
-              aoMudarEstado={setEstadoTeaser}
-            />
+            <CampoVideoBiblioteca nome="videoIntrodutorioUrl" />
           </Secao>
         </>
       )}
@@ -520,7 +506,7 @@ export function FormularioConteudo({
         <button
           type="submit"
           form="formulario-conteudo"
-          disabled={enviando || enviandoVideo}
+          disabled={enviando}
           onClick={() => {
             rascunhoRef.current = false;
           }}
@@ -528,17 +514,15 @@ export function FormularioConteudo({
         >
           {enviando
             ? "Salvando…"
-            : enviandoVideo
-              ? "Enviando vídeo…"
-              : editando
-                ? "Salvar alterações"
-                : "Criar conteúdo"}
+            : editando
+              ? "Salvar alterações"
+              : "Criar conteúdo"}
         </button>
 
         <button
           type="submit"
           form="formulario-conteudo"
-          disabled={enviando || enviandoVideo}
+          disabled={enviando}
           onClick={() => {
             rascunhoRef.current = true;
           }}

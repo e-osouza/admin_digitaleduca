@@ -1,21 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import {
   atualizarConteudo,
   criarConteudo,
 } from "@/app/(painel)/conteudos/acoes";
-import {
-  buscarVideosNaBiblioteca,
-  vincularVideoExistente,
-} from "@/app/(painel)/conteudos/acoes-aulas";
-import { duracaoLegivel } from "@/lib/formato";
+import { vincularVideoExistente } from "@/app/(painel)/conteudos/acoes-aulas";
 import { CampoPublicar } from "@/components/conteudos/campo-publicar";
-import {
-  CampoUploadVimeo,
-  type EstadoUpload,
-} from "@/components/conteudos/campo-upload-vimeo";
+import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
   BOTAO_PRIMARIO,
@@ -81,55 +74,12 @@ export function FormularioPodcast({
 
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  // Estado do upload do vídeo (quando enviado por arquivo): trava o botão de
-  // salvar enquanto o envio ao Vimeo não termina.
-  const [estadoUpload, setEstadoUpload] = useState<EstadoUpload>("vazio");
   /* Qual botão foi clicado: "Salvar como rascunho" (true) força rascunho e
      dispensa o vídeo; lido no submit e resetado em seguida. */
   const rascunhoRef = useRef(false);
   const [gratuitoTipo, setGratuitoTipo] = useState(
     podcast?.gratuitoTipo ?? "NENHUM",
   );
-
-  /*
-    Origem do vídeo na criação: enviar um arquivo novo (padrão) ou reaproveitar
-    um que já está no Vimeo/plataforma — a mesma "biblioteca" que os cursos usam.
-    Sem isso, criar um episódio de um vídeo já enviado obrigava a reenviar o
-    arquivo, duplicando-o no Vimeo.
-  */
-  type VideoBiblioteca = {
-    id: number;
-    titulo: string;
-    url?: string;
-    duracao: number | null;
-  };
-  const [origemVideo, setOrigemVideo] = useState<"arquivo" | "biblioteca">(
-    "arquivo",
-  );
-  const [buscaVideo, setBuscaVideo] = useState("");
-  const [videosBiblioteca, setVideosBiblioteca] = useState<VideoBiblioteca[]>([]);
-  const [buscandoVideos, setBuscandoVideos] = useState(false);
-  const [videoEscolhido, setVideoEscolhido] = useState<VideoBiblioteca | null>(
-    null,
-  );
-
-  /*
-    Busca no servidor, com atraso. A rota pagina, então filtrar no cliente só
-    varreria a primeira página; o atraso evita uma requisição por tecla. Igual
-    ao ModalVideo dos cursos.
-  */
-  useEffect(() => {
-    if (editando || origemVideo !== "biblioteca") return;
-    const relogio = setTimeout(async () => {
-      setBuscandoVideos(true);
-      try {
-        setVideosBiblioteca(await buscarVideosNaBiblioteca(buscaVideo));
-      } finally {
-        setBuscandoVideos(false);
-      }
-    }, 400);
-    return () => clearTimeout(relogio);
-  }, [buscaVideo, origemVideo, editando]);
 
   const porPapel = (papel: string) =>
     (podcast?.instrutores ?? [])
@@ -223,18 +173,13 @@ export function FormularioPodcast({
           e aqui é só o vínculo, sem tus no submit. Ao salvar como rascunho pode
           nem haver vídeo (anexado depois, na edição). Nasce sempre rascunho.
         */
-        const usandoBiblioteca = origemVideo === "biblioteca";
-        const url = usandoBiblioteca
-          ? (videoEscolhido?.url ?? "")
-          : String(dados.get("videoUrl") ?? "");
+        // O vídeo (da biblioteca ou recém-enviado) chega como URL. Sem vídeo,
+        // só ao salvar como rascunho (anexado depois, na edição).
+        const url = String(dados.get("videoUrl") ?? "");
         const temVideo = !!url;
 
         if (!rascunho && !temVideo) {
-          setErro(
-            usandoBiblioteca
-              ? "Escolha um vídeo da biblioteca."
-              : "Envie o vídeo do episódio.",
-          );
+          setErro("Escolha ou envie o vídeo do episódio.");
           setEnviando(false);
           return;
         }
@@ -250,14 +195,12 @@ export function FormularioPodcast({
         }
 
         // Vincula o episódio só quando há vídeo. É `conteudo.videos[0]` que a
-        // plataforma toca; sem vídeo (rascunho), fica para a edição.
+        // plataforma toca; sem vídeo (rascunho), fica para a edição. A duração
+        // é preenchida pela API a partir do Vimeo.
         if (temVideo) {
           const episodio = await vincularVideoExistente(resultado.id, {
             titulo: String(dados.get("titulo") ?? "Episódio"),
             videoUrl: url,
-            duracao: usandoBiblioteca
-              ? (videoEscolhido?.duracao ?? undefined)
-              : undefined,
           });
           if (!episodio.ok) {
             setErro(
@@ -459,89 +402,9 @@ export function FormularioPodcast({
       {!editando && (
         <Secao
           titulo="Vídeo do episódio"
-          ajuda={
-            origemVideo === "arquivo"
-              ? "Obrigatório. O arquivo vai direto do seu navegador para o Vimeo — não passa pelo painel."
-              : "Escolha um vídeo já publicado no Vimeo/plataforma — cria só o vínculo, sem reenviar o arquivo."
-          }
+          ajuda="Escolha um vídeo da biblioteca ou envie um novo. Opcional ao salvar como rascunho — dá para anexar depois, na edição."
         >
-          {/* Enviar do computador ou reaproveitar um vídeo já na plataforma. */}
-          <div className="mb-3 flex gap-2">
-            {(
-              [
-                ["arquivo", "Enviar arquivo"],
-                ["biblioteca", "Já na plataforma"],
-              ] as const
-            ).map(([chave, rotulo]) => (
-              <button
-                key={chave}
-                type="button"
-                onClick={() => setOrigemVideo(chave)}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                  origemVideo === chave
-                    ? "border-acento/60 text-acento bg-acento/10"
-                    : "border-borda text-texto-2 hover:border-acento/60 hover:text-acento"
-                }`}
-              >
-                {rotulo}
-              </button>
-            ))}
-          </div>
-
-          {origemVideo === "arquivo" ? (
-            <CampoUploadVimeo nome="videoUrl" aoMudarEstado={setEstadoUpload} />
-          ) : (
-            <div className="flex flex-col gap-2">
-              <input
-                type="search"
-                value={buscaVideo}
-                onChange={(e) => setBuscaVideo(e.target.value)}
-                placeholder="Buscar vídeo…"
-                className={CONTROLE}
-              />
-
-              {buscandoVideos && (
-                <p className="text-texto-3 text-xs">Buscando…</p>
-              )}
-
-              <ul className="border-borda-suave divide-borda-suave/60 max-h-72 divide-y overflow-y-auto rounded-lg border">
-                {videosBiblioteca
-                  .filter((v) => v.url)
-                  .map((video) => (
-                    <li key={video.id}>
-                      <button
-                        type="button"
-                        onClick={() => setVideoEscolhido(video)}
-                        className={`flex w-full items-center gap-2 px-3 py-2 text-left transition-colors ${
-                          videoEscolhido?.id === video.id
-                            ? "bg-acento/10"
-                            : "hover:bg-superficie-2"
-                        }`}
-                      >
-                        <span className="text-texto-2 min-w-0 flex-1 truncate text-sm">
-                          {video.titulo}
-                        </span>
-                        <span className="text-texto-3 shrink-0 text-xs">
-                          {duracaoLegivel(video.duracao)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-
-                {!buscandoVideos && videosBiblioteca.length === 0 && (
-                  <li className="text-texto-3 px-3 py-4 text-center text-sm">
-                    Nenhum vídeo encontrado.
-                  </li>
-                )}
-              </ul>
-
-              {videoEscolhido && (
-                <p className="text-texto-3 text-xs">
-                  Selecionado: <strong>{videoEscolhido.titulo}</strong>
-                </p>
-              )}
-            </div>
-          )}
+          <CampoVideoBiblioteca nome="videoUrl" />
         </Secao>
       )}
 
@@ -567,7 +430,7 @@ export function FormularioPodcast({
         <button
           type="submit"
           form="formulario-podcast"
-          disabled={enviando || estadoUpload === "enviando"}
+          disabled={enviando}
           onClick={() => {
             rascunhoRef.current = false;
           }}
@@ -575,17 +438,15 @@ export function FormularioPodcast({
         >
           {enviando
             ? "Salvando…"
-            : estadoUpload === "enviando"
-              ? "Enviando vídeo…"
-              : editando
-                ? "Salvar alterações"
-                : "Criar episódio"}
+            : editando
+              ? "Salvar alterações"
+              : "Criar episódio"}
         </button>
 
         <button
           type="submit"
           form="formulario-podcast"
-          disabled={enviando || estadoUpload === "enviando"}
+          disabled={enviando}
           onClick={() => {
             rascunhoRef.current = true;
           }}
