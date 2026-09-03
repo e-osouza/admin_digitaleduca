@@ -92,6 +92,9 @@ export function FormularioConteudo({
    */
   const [comModulos, setComModulos] = useState(false);
   const [modulosNovos, setModulosNovos] = useState<ModuloNovo[]>([]);
+  // Só curso tem módulos. MasterClass (AULA) e Palestra são vídeo único — sem a
+  // escolha de estrutura, `comModulos` fica sempre false.
+  const permiteModulos = tipo === "CURSO";
 
   const instrutoresAtuais = (conteudo?.instrutores ?? [])
     .filter((p) => p.papel === "INSTRUTOR")
@@ -429,41 +432,43 @@ export function FormularioConteudo({
 
       {!editando && (
         <>
-          <Secao
-            titulo="Estrutura"
-            ajuda="Dá para mudar depois, enquanto não houver módulo nem vídeo cadastrado."
-          >
-            <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="estrutura"
-                  checked={!comModulos}
-                  onChange={() => setComModulos(false)}
-                  className="accent-acento h-4 w-4"
-                />
-                <span className="text-texto-2">Vídeo único</span>
-              </label>
+          {permiteModulos && (
+            <Secao
+              titulo="Estrutura"
+              ajuda="Dá para mudar depois, enquanto não houver módulo nem vídeo cadastrado."
+            >
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="estrutura"
+                    checked={!comModulos}
+                    onChange={() => setComModulos(false)}
+                    className="accent-acento h-4 w-4"
+                  />
+                  <span className="text-texto-2">Vídeo único</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="estrutura"
-                  checked={comModulos}
-                  onChange={() => setComModulos(true)}
-                  className="accent-acento h-4 w-4"
-                />
-                <span className="text-texto-2">Dividido em módulos</span>
-              </label>
-            </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="estrutura"
+                    checked={comModulos}
+                    onChange={() => setComModulos(true)}
+                    className="accent-acento h-4 w-4"
+                  />
+                  <span className="text-texto-2">Dividido em módulos</span>
+                </label>
+              </div>
 
-            {comModulos && (
-              <CompositorModulos
-                modulos={modulosNovos}
-                aoMudar={setModulosNovos}
-              />
-            )}
-          </Secao>
+              {comModulos && (
+                <CompositorModulos
+                  modulos={modulosNovos}
+                  aoMudar={setModulosNovos}
+                />
+              )}
+            </Secao>
+          )}
 
           {!comModulos && (
             <Secao
