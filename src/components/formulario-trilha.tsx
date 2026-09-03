@@ -12,14 +12,13 @@ import {
   BOTAO_TEXTO,
   CONTROLE,
   Campo,
-  CampoImagem,
-  ProgressoUpload,
   Secao,
 } from "@/components/campos-formulario";
 import { CampoTags } from "@/components/campos-formulario";
+import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
+import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { SeletorConteudos } from "@/components/seletor-conteudos";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
-import { enviarParaVimeo } from "@/lib/upload-vimeo";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
 import type {
   Categoria,
@@ -58,7 +57,6 @@ export function FormularioTrilha({
 
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const [progresso, setProgresso] = useState<number | null>(null);
   const [gratuitoTipo, setGratuitoTipo] = useState(
     trilha?.gratuitoTipo ?? "NENHUM",
   );
@@ -135,11 +133,6 @@ export function FormularioTrilha({
       return Number.isFinite(valor) && valor > 0 ? valor : undefined;
     };
 
-    /* O vídeo não vai para a Server Action — sobe direto para o Vimeo. */
-    const bruto = arquivos.get("video");
-    const video = bruto instanceof File && bruto.size > 0 ? bruto : null;
-    arquivos.delete("video");
-
     const dados = {
       /* Só na criação: mudar o tipo de uma trilha existente é outra operação. */
       ...(trilha ? {} : { tipo }),
@@ -158,7 +151,8 @@ export function FormularioTrilha({
       dataCriacao: texto("dataCriacao"),
       tags: separarTags(String(arquivos.get("tagsTexto") ?? "")),
       instrutorIds: idsMarcados(formulario, "instrutorIds"),
-      fileSize: video?.size,
+      // Vídeo (biblioteca ou recém-enviado) chega como URL — já subiu ao Vimeo.
+      videoIntrodutorioUrl: texto("videoIntrodutorioUrl"),
       conteudoIds: soltos,
       // `chave` é só identidade local para o React — não vai para a API.
       modulos: modulos.map((modulo) => ({
@@ -179,20 +173,6 @@ export function FormularioTrilha({
     if (!resultado.ok) {
       setErro(resultado.erro);
       return;
-    }
-
-    if (video && resultado.vimeoUploadLink) {
-      setSalvando(true);
-      try {
-        await enviarParaVimeo(video, resultado.vimeoUploadLink, setProgresso);
-      } catch {
-        setErro(
-          "A trilha foi criada, mas o envio do vídeo falhou. Abra a edição para conferir.",
-        );
-        setSalvando(false);
-        return;
-      }
-      setSalvando(false);
     }
 
     router.push(editando ? "/trilhas?feito=salvo" : "/trilhas?feito=criado");
@@ -376,17 +356,17 @@ export function FormularioTrilha({
         ajuda="Opcionais. Sem arte própria, a plataforma usa a do primeiro conteúdo da trilha."
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailDesktop"
             rotulo="Desktop"
             atual={trilha?.thumbnailDesktop}
           />
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailMobile"
             rotulo="Mobile"
             atual={trilha?.thumbnailMobile}
           />
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailDestaque"
             rotulo="Destaque"
             atual={trilha?.thumbnailDestaque}
@@ -519,18 +499,11 @@ export function FormularioTrilha({
       {!editando && (
         <Secao
           titulo="Vídeo introdutório"
-          ajuda="Opcional. É o teaser da formação. O arquivo vai direto do seu navegador para o Vimeo."
+          ajuda="Opcional. É o teaser da formação. Escolha da biblioteca ou envie um novo."
         >
-          <input
-            type="file"
-            name="video"
-            accept="video/*"
-            className="text-texto-2 file:border-borda file:bg-superficie-2 file:text-texto file:mr-3 file:rounded-lg file:border file:px-3 file:py-1.5 file:text-sm w-full text-sm"
-          />
+          <CampoVideoBiblioteca nome="videoIntrodutorioUrl" />
         </Secao>
       )}
-
-      {progresso !== null && <ProgressoUpload valor={progresso} />}
 
       {erro && (
         <p

@@ -42,6 +42,8 @@ export type DadosTrilha = {
   instrutorIds: number[];
   /** Tamanho do vídeo introdutório. Só na criação. */
   fileSize?: number;
+  /** URL de um teaser já enviado ao Vimeo (biblioteca de vídeos). */
+  videoIntrodutorioUrl?: string;
 };
 
 async function mensagemDeErro(resposta: Response): Promise<string> {
@@ -88,14 +90,18 @@ function montarCorpo(dados: DadosTrilha, arquivos: FormData): FormData {
   if (dados.gratuitoAte) corpo.set("gratuitoAte", dados.gratuitoAte);
   if (dados.dataCriacao) corpo.set("dataCriacao", dados.dataCriacao);
   if (dados.fileSize) corpo.set("fileSize", String(dados.fileSize));
+  if (dados.videoIntrodutorioUrl)
+    corpo.set("videoIntrodutorioUrl", dados.videoIntrodutorioUrl);
 
   for (const campo of [
     "thumbnailDesktop",
     "thumbnailMobile",
     "thumbnailDestaque",
   ]) {
-    const arquivo = arquivos.get(campo);
-    if (arquivo instanceof File && arquivo.size > 0) corpo.set(campo, arquivo);
+    const valor = arquivos.get(campo);
+    // Arquivo novo (upload) OU caminho de uma imagem da biblioteca (texto).
+    if (valor instanceof File && valor.size > 0) corpo.set(campo, valor);
+    else if (typeof valor === "string" && valor !== "") corpo.set(campo, valor);
   }
 
   return corpo;

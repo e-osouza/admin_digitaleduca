@@ -1,24 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import {
+  atualizarConteudo,
   removerVideoIntrodutorio,
-  trocarVideo,
 } from "@/app/(painel)/conteudos/acoes";
-import {
-  BOTAO_PRIMARIO,
-  CAMPO_ARQUIVO,
-  ProgressoUpload,
-} from "@/components/campos-formulario";
-import { enviarParaVimeo } from "@/lib/upload-vimeo";
+import { ModalVideoMidia } from "@/components/conteudos/modal-video-midia";
 
 /**
- * Troca o arquivo de vídeo de um conteúdo ou episódio já publicado.
- *
- * Fica atrás de uma confirmação porque o backend apaga o vídeo anterior do
- * Vimeo assim que o ticket novo é aberto — não é uma ação para se disparar
- * por engano ao clicar num campo de arquivo.
+ * Troca o vídeo introdutório de um conteúdo — agora pela biblioteca de mídia
+ * (escolher existente ou enviar). O vídeo escolhido vira o teaser pelo update
+ * (`videoIntrodutorioUrl`); a remoção continua atrás de confirmação.
  */
 export function TrocarVideo({
   conteudoId,
@@ -33,52 +26,25 @@ export function TrocarVideo({
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const [progresso, setProgresso] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
   const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
   const [removendo, setRemovendo] = useState(false);
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
+  async function usar(url: string) {
+    setAberto(false);
     setErro(null);
+    setSalvando(true);
 
-    const arquivo = new FormData(evento.currentTarget).get("video");
-    if (!(arquivo instanceof File) || arquivo.size === 0) {
-      setErro("Selecione o novo arquivo.");
-      return;
-    }
+    const fd = new FormData();
+    fd.set("videoIntrodutorioUrl", url);
+    const resultado = await atualizarConteudo(conteudoId, fd);
 
-    setEnviando(true);
-    setProgresso(null);
-
-    const resultado = await trocarVideo(conteudoId, arquivo.size);
+    setSalvando(false);
     if (!resultado.ok) {
       setErro(resultado.erro);
-      setEnviando(false);
       return;
     }
-
-    if (resultado.vimeoUploadLink) {
-      try {
-        await enviarParaVimeo(arquivo, resultado.vimeoUploadLink, setProgresso);
-      } catch {
-        /*
-         * O vídeo antigo já foi apagado e o conteúdo aponta para o novo, que
-         * ficou vazio. Repetir a troca resolve — por isso a mensagem diz
-         * exatamente isso em vez de um "falhou" genérico.
-         */
-        setErro(
-          "O envio falhou e o vídeo anterior já foi removido. Tente a troca novamente com o mesmo arquivo.",
-        );
-        setEnviando(false);
-        return;
-      }
-    }
-
-    setAberto(false);
-    setEnviando(false);
-    setProgresso(null);
     router.refresh();
   }
 
@@ -103,8 +69,8 @@ export function TrocarVideo({
     return (
       <div className="border-alerta/40 bg-alerta/5 flex flex-col gap-2 rounded-lg border p-3">
         <p className="text-texto text-sm">
-          Remover o {rotulo}? O arquivo é apagado do Vimeo. As aulas e os
-          módulos não são afetados.
+          Remover o {rotulo}? O arquivo é apagado do Vimeo. As aulas e os módulos
+          não são afetados.
         </p>
         <div className="flex gap-2">
           <button
@@ -128,55 +94,33 @@ export function TrocarVideo({
     );
   }
 
-  if (!aberto) {
-    return (
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setAberto(true)}
+          disabled={salvando}
+          className="border-borda text-texto-2 hover:bg-superficie-2 hover:text-texto w-fit rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+        >
+          {salvando
+            ? "Aplicando…"
+            : temVideo
+              ? `Trocar ${rotulo}`
+              : `Enviar ${rotulo}`}
+        </button>
+
+        {temVideo && (
           <button
             type="button"
-            onClick={() => setAberto(true)}
-            className="border-borda text-texto-2 hover:bg-superficie-2 hover:text-texto w-fit rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            onClick={() => setConfirmandoRemocao(true)}
+            disabled={salvando}
+            className="border-borda text-alerta hover:bg-alerta/10 hover:border-alerta/40 w-fit rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
           >
-            {temVideo ? `Trocar ${rotulo}` : `Enviar ${rotulo}`}
+            Remover
           </button>
-
-          {temVideo && (
-            <button
-              type="button"
-              onClick={() => setConfirmandoRemocao(true)}
-              className="border-borda text-alerta hover:bg-alerta/10 hover:border-alerta/40 w-fit rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-            >
-              Remover
-            </button>
-          )}
-        </div>
-
-        {erro && (
-          <p role="alert" className="text-alerta text-sm">
-            {erro}
-          </p>
         )}
       </div>
-    );
-  }
-
-  return (
-    <form
-      onSubmit={enviar}
-      className="border-aviso/40 bg-aviso/5 flex flex-col gap-3 rounded-lg border p-4"
-    >
-      <p className="text-texto text-sm">
-        O vídeo atual é <strong>apagado do Vimeo</strong> assim que o envio
-        começa. Não dá para desfazer.
-      </p>
-
-      <input
-        type="file"
-        name="video"
-        accept="video/*"
-        required
-        className={CAMPO_ARQUIVO}
-      />
 
       {erro && (
         <p role="alert" className="text-alerta text-sm">
@@ -184,21 +128,11 @@ export function TrocarVideo({
         </p>
       )}
 
-      {progresso !== null && <ProgressoUpload valor={progresso} />}
-
-      <div className="flex gap-2">
-        <button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
-          {enviando ? "Enviando…" : "Substituir vídeo"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setAberto(false)}
-          disabled={enviando}
-          className="text-texto-2 hover:text-texto rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-60"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
+      <ModalVideoMidia
+        aberto={aberto}
+        aoFechar={() => setAberto(false)}
+        aoEscolher={usar}
+      />
+    </div>
   );
 }
