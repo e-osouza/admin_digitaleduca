@@ -19,12 +19,12 @@ import {
   BOTAO_TEXTO,
   CONTROLE,
   Campo,
-  CampoImagem,
   CampoTags,
   Secao,
 } from "@/components/campos-formulario";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { CampoPublicar } from "@/components/conteudos/campo-publicar";
+import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
   CampoUploadVimeo,
   type EstadoUpload,
@@ -417,17 +417,17 @@ export function FormularioConteudo({
         }
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailDesktop"
             rotulo="Desktop (horizontal)"
             atual={conteudo?.thumbnailDesktop}
           />
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailMobile"
             rotulo="Mobile (vertical)"
             atual={conteudo?.thumbnailMobile}
           />
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailDestaque"
             rotulo="Destaque"
             atual={conteudo?.thumbnailDestaque}

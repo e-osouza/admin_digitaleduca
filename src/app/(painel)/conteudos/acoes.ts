@@ -69,8 +69,10 @@ function montarCorpo(entrada: FormData): FormData {
   }
 
   for (const campo of ARQUIVOS) {
-    const arquivo = entrada.get(campo);
-    if (arquivo instanceof File && arquivo.size > 0) corpo.set(campo, arquivo);
+    const valor = entrada.get(campo);
+    // Arquivo novo (upload) OU caminho de uma imagem da biblioteca (texto).
+    if (valor instanceof File && valor.size > 0) corpo.set(campo, valor);
+    else if (typeof valor === "string" && valor !== "") corpo.set(campo, valor);
   }
 
   return corpo;
@@ -490,5 +492,58 @@ export async function apagarVideoVimeo(uri: string): Promise<void> {
     });
   } catch {
     /* melhor esforço: um vídeo órfão no Vimeo não pode travar a tela */
+  }
+}
+
+/**
+ * Lista as imagens da biblioteca de mídia (arquivos em public/uploads).
+ * Mais recentes primeiro; paginada e com busca por nome.
+ */
+export async function listarImagensMidia(
+  q?: string,
+  page = 1,
+): Promise<{
+  data: { src: string; nome: string; tamanho: number }[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> {
+  const token = await lerToken();
+  const vazio = { data: [], total: 0, page: 1, totalPages: 0 };
+  if (!token) return vazio;
+  const params = new URLSearchParams({ page: String(page), limit: "40" });
+  if (q?.trim()) params.set("q", q.trim());
+  try {
+    const resposta = await fetch(`${API_URL}/media/imagens?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!resposta.ok) return vazio;
+    return await resposta.json();
+  } catch {
+    return vazio;
+  }
+}
+
+/** Envia uma imagem para a biblioteca. Devolve o caminho ("uploads/x.jpg"). */
+export async function enviarImagemMidia(
+  formData: FormData,
+): Promise<{ ok: true; src: string } | { ok: false; erro: string }> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+  try {
+    const resposta = await fetch(`${API_URL}/media/imagens`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      cache: "no-store",
+    });
+    if (!resposta.ok) {
+      return { ok: false, erro: await mensagemDeErro(resposta) };
+    }
+    const dados = await resposta.json();
+    return { ok: true, src: dados.src };
+  } catch {
+    return { ok: false, erro: "Falha ao enviar a imagem." };
   }
 }

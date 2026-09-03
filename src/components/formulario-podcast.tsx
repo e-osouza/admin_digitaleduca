@@ -16,12 +16,12 @@ import {
   CampoUploadVimeo,
   type EstadoUpload,
 } from "@/components/conteudos/campo-upload-vimeo";
+import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
   BOTAO_PRIMARIO,
   BOTAO_TEXTO,
   CONTROLE,
   Campo,
-  CampoImagem,
   CampoTags,
   Secao,
 } from "@/components/campos-formulario";
@@ -197,10 +197,11 @@ export function FormularioPodcast({
       rascunho ? "false" : dados.get("publicado") ? "true" : "false",
     );
 
-    // Capa única (quadrada): replica a mesma arte nos 3 campos de thumbnail que
-    // a plataforma lê em layouts diferentes, para nenhum card ficar sem imagem.
+    // Capa única (quadrada): replica a mesma arte (caminho da biblioteca) nos 3
+    // campos de thumbnail que a plataforma lê em layouts diferentes, para nenhum
+    // card ficar sem imagem.
     const capa = dados.get("thumbnailMobile");
-    if (capa instanceof File && capa.size > 0) {
+    if (typeof capa === "string" && capa) {
       dados.set("thumbnailDesktop", capa);
       dados.set("thumbnailDestaque", capa);
     }
@@ -447,7 +448,7 @@ export function FormularioPodcast({
           diferentes (card quadrado, card deitado e destaque), então nada some.
         */}
         <div className="max-w-xs">
-          <CampoImagem
+          <CampoImagemBiblioteca
             nome="thumbnailMobile"
             rotulo="Capa do episódio (quadrada 1:1)"
             atual={podcast?.thumbnailMobile}
