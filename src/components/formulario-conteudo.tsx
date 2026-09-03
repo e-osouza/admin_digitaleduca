@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import {
   atualizarConteudo,
   criarConteudo,
@@ -81,6 +81,8 @@ export function FormularioConteudo({
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [progresso, setProgresso] = useState<number | null>(null);
+  /* "Salvar como rascunho" (true) força rascunho; lido no submit e resetado. */
+  const rascunhoRef = useRef(false);
   const [gratuitoTipo, setGratuitoTipo] = useState(
     conteudo?.gratuitoTipo ?? "NENHUM",
   );
@@ -114,7 +116,12 @@ export function FormularioConteudo({
 
     // Checkbox ausente não vai no FormData; a API precisa do booleano.
     dados.set("destaque", dados.get("destaque") ? "true" : "false");
-    dados.set("publicado", dados.get("publicado") ? "true" : "false");
+    const rascunho = rascunhoRef.current;
+    rascunhoRef.current = false;
+    dados.set(
+      "publicado",
+      rascunho ? "false" : dados.get("publicado") ? "true" : "false",
+    );
 
     if (gratuitoTipo !== "TEMPORARIO") dados.delete("gratuitoAte");
 
@@ -557,6 +564,9 @@ export function FormularioConteudo({
           type="submit"
           form="formulario-conteudo"
           disabled={enviando}
+          onClick={() => {
+            rascunhoRef.current = false;
+          }}
           className={BOTAO_PRIMARIO}
         >
           {enviando
@@ -564,6 +574,19 @@ export function FormularioConteudo({
             : editando
               ? "Salvar alterações"
               : "Criar conteúdo"}
+        </button>
+
+        <button
+          type="submit"
+          form="formulario-conteudo"
+          disabled={enviando}
+          onClick={() => {
+            rascunhoRef.current = true;
+          }}
+          className={BOTAO_TEXTO}
+          title="Salva sem publicar — você continua depois e publica quando o vídeo estiver pronto."
+        >
+          Salvar como rascunho
         </button>
 
         <button

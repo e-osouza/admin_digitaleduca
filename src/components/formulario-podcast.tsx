@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   atualizarConteudo,
   criarConteudo,
@@ -82,6 +82,9 @@ export function FormularioPodcast({
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [progresso, setProgresso] = useState<number | null>(null);
+  /* Qual botão foi clicado: "Salvar como rascunho" (true) força rascunho e
+     dispensa o vídeo; lido no submit e resetado em seguida. */
+  const rascunhoRef = useRef(false);
   const [gratuitoTipo, setGratuitoTipo] = useState(
     podcast?.gratuitoTipo ?? "NENHUM",
   );
@@ -183,7 +186,23 @@ export function FormularioPodcast({
     dados.set("tags", JSON.stringify(separarTags(tagsCruas)));
 
     dados.set("destaque", dados.get("destaque") ? "true" : "false");
-    dados.set("publicado", dados.get("publicado") ? "true" : "false");
+
+    // "Salvar como rascunho" força rascunho e dispensa o vídeo; o botão normal
+    // respeita o checkbox (que na criação nem existe → rascunho de qualquer jeito).
+    const rascunho = rascunhoRef.current;
+    rascunhoRef.current = false;
+    dados.set(
+      "publicado",
+      rascunho ? "false" : dados.get("publicado") ? "true" : "false",
+    );
+
+    // Capa única (quadrada): replica a mesma arte nos 3 campos de thumbnail que
+    // a plataforma lê em layouts diferentes, para nenhum card ficar sem imagem.
+    const capa = dados.get("thumbnailMobile");
+    if (capa instanceof File && capa.size > 0) {
+      dados.set("thumbnailDesktop", capa);
+      dados.set("thumbnailDestaque", capa);
+    }
 
     if (gratuitoTipo !== "TEMPORARIO") dados.delete("gratuitoAte");
 
@@ -195,50 +214,31 @@ export function FormularioPodcast({
           setEnviando(false);
           return;
         }
-      } else if (origemVideo === "biblioteca") {
-        /*
-         * Reaproveitar um vídeo que já está no Vimeo: cria só o vínculo,
-         * apontando o episódio para a MESMA URI — sem reenviar o arquivo. Sem
-         * `fileSize`, o conteúdo nasce sem teaser (o vídeo é o próprio episódio).
-         */
-        if (!videoEscolhido?.url) {
-          setErro("Escolha um vídeo da biblioteca.");
-          setEnviando(false);
-          return;
-        }
-
-        dados.delete("video");
-
-        const resultado = await criarConteudo(dados);
-        if (!resultado.ok) {
-          setErro(resultado.erro);
-          setEnviando(false);
-          return;
-        }
-
-        const episodio = await vincularVideoExistente(resultado.id, {
-          titulo: String(dados.get("titulo") ?? "Episódio"),
-          videoUrl: videoEscolhido.url,
-          duracao: videoEscolhido.duracao ?? undefined,
-        });
-
-        if (!episodio.ok) {
-          setErro(
-            `O episódio foi criado, mas não foi possível vincular o vídeo: ${episodio.erro}`,
-          );
-          setEnviando(false);
-          return;
-        }
       } else {
-        const video = dados.get("video");
-        if (!(video instanceof File) || video.size === 0) {
-          setErro("Selecione o vídeo do episódio.");
+        /*
+          Criação. O vídeo pode vir de um arquivo novo ou da biblioteca — e, ao
+          salvar como rascunho, pode nem vir (anexado depois, na edição, via
+          "Trocar episódio"). O conteúdo nasce sempre como rascunho.
+        */
+        const usandoBiblioteca = origemVideo === "biblioteca";
+        const arquivo = dados.get("video");
+        const temArquivo = arquivo instanceof File && arquivo.size > 0;
+        const temVideo = usandoBiblioteca ? !!videoEscolhido?.url : temArquivo;
+
+        if (!rascunho && !temVideo) {
+          setErro(
+            usandoBiblioteca
+              ? "Escolha um vídeo da biblioteca."
+              : "Selecione o vídeo do episódio.",
+          );
           setEnviando(false);
           return;
         }
 
         dados.delete("video");
-        dados.set("fileSize", String(video.size));
+        if (!usandoBiblioteca && temArquivo) {
+          dados.set("fileSize", String((arquivo as File).size));
+        }
 
         const resultado = await criarConteudo(dados);
         if (!resultado.ok) {
@@ -248,40 +248,49 @@ export function FormularioPodcast({
         }
 
         /*
-         * O arquivo vai para um registro em `videos`, NÃO para o
-         * `videoIntrodutorio` que `/conteudos/create` acabou de abrir.
-         *
-         * É onde a plataforma do aluno procura: ela toca `conteudo.videos[0]`
-         * e não tem retorno para o introdutório — um podcast sem esse registro
-         * mostra "episódio ainda não tem áudio publicado". Os 18 episódios do
-         * acervo seguem esse mesmo desenho.
-         *
-         * Efeito colateral conhecido: o ticket introdutório fica sem upload,
-         * deixando um vídeo vazio no Vimeo. `/conteudos/create` exige
-         * `fileSize` e sempre abre esse ticket — não há como recusá-lo.
-         */
-        const episodio = await criarAula(resultado.id, {
-          titulo: String(dados.get("titulo") ?? "Episódio"),
-          fileSize: video.size,
-        });
-
-        if (!episodio.ok) {
-          setErro(
-            `O episódio foi criado, mas não foi possível registrar o vídeo: ${episodio.erro}`,
-          );
-          setEnviando(false);
-          return;
-        }
-
-        if (episodio.vimeoUploadLink) {
-          try {
-            await enviarParaVimeo(video, episodio.vimeoUploadLink, setProgresso);
-          } catch {
+          Anexa o episódio só quando há vídeo. O arquivo vai para um registro em
+          `videos` (não para o introdutório): é `conteudo.videos[0]` que a
+          plataforma toca. Sem vídeo (rascunho), fica para a edição.
+        */
+        if (temVideo && usandoBiblioteca) {
+          const episodio = await vincularVideoExistente(resultado.id, {
+            titulo: String(dados.get("titulo") ?? "Episódio"),
+            videoUrl: videoEscolhido!.url!,
+            duracao: videoEscolhido!.duracao ?? undefined,
+          });
+          if (!episodio.ok) {
             setErro(
-              "O episódio foi criado, mas o envio do vídeo falhou. Abra a edição para reenviar.",
+              `O episódio foi criado, mas não foi possível vincular o vídeo: ${episodio.erro}`,
             );
             setEnviando(false);
             return;
+          }
+        } else if (temVideo) {
+          const episodio = await criarAula(resultado.id, {
+            titulo: String(dados.get("titulo") ?? "Episódio"),
+            fileSize: (arquivo as File).size,
+          });
+          if (!episodio.ok) {
+            setErro(
+              `O episódio foi criado, mas não foi possível registrar o vídeo: ${episodio.erro}`,
+            );
+            setEnviando(false);
+            return;
+          }
+          if (episodio.vimeoUploadLink) {
+            try {
+              await enviarParaVimeo(
+                arquivo as File,
+                episodio.vimeoUploadLink,
+                setProgresso,
+              );
+            } catch {
+              setErro(
+                "O episódio foi criado, mas o envio do vídeo falhou. Abra a edição para reenviar.",
+              );
+              setEnviando(false);
+              return;
+            }
           }
         }
       }
@@ -452,28 +461,23 @@ export function FormularioPodcast({
       </Secao>
 
       <Secao
-        titulo="Imagens"
+        titulo="Capa"
         ajuda={
           editando
-            ? "Envie um arquivo apenas para substituir a imagem atual."
-            : "A arte quadrada do podcast vai em Mobile — é a que a plataforma usa nos cards."
+            ? "Arte quadrada (1:1). Envie um arquivo apenas para substituir a atual."
+            : "Uma única arte quadrada (1:1) — é a capa do episódio em todo o app."
         }
       >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoImagem
-            nome="thumbnailDesktop"
-            rotulo="Desktop (horizontal)"
-            atual={podcast?.thumbnailDesktop}
-          />
+        {/*
+          Podcast tem uma capa só: quadrada. A mesma arte é replicada no submit
+          para os três campos de thumbnail que a plataforma lê em layouts
+          diferentes (card quadrado, card deitado e destaque), então nada some.
+        */}
+        <div className="max-w-xs">
           <CampoImagem
             nome="thumbnailMobile"
-            rotulo="Mobile (quadrada)"
+            rotulo="Capa do episódio (quadrada 1:1)"
             atual={podcast?.thumbnailMobile}
-          />
-          <CampoImagem
-            nome="thumbnailDestaque"
-            rotulo="Destaque"
-            atual={podcast?.thumbnailDestaque}
           />
         </div>
       </Secao>
@@ -515,7 +519,6 @@ export function FormularioPodcast({
               type="file"
               name="video"
               accept="video/*"
-              required
               className={CAMPO_ARQUIVO}
             />
           ) : (
@@ -598,6 +601,9 @@ export function FormularioPodcast({
           type="submit"
           form="formulario-podcast"
           disabled={enviando}
+          onClick={() => {
+            rascunhoRef.current = false;
+          }}
           className={BOTAO_PRIMARIO}
         >
           {enviando
@@ -605,6 +611,19 @@ export function FormularioPodcast({
             : editando
               ? "Salvar alterações"
               : "Criar episódio"}
+        </button>
+
+        <button
+          type="submit"
+          form="formulario-podcast"
+          disabled={enviando}
+          onClick={() => {
+            rascunhoRef.current = true;
+          }}
+          className={BOTAO_TEXTO}
+          title="Salva sem publicar — o vídeo pode ser anexado depois, na edição."
+        >
+          Salvar como rascunho
         </button>
 
         <button
