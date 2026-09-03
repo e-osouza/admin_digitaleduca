@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   buscarVideosNaBiblioteca,
-  criarAula,
   obterLinkDoVideo,
   vincularVideoExistente,
 } from "@/app/(painel)/conteudos/acoes-aulas";
-import { CAMPO_ARQUIVO, CONTROLE, ProgressoUpload } from "@/components/campos-formulario";
-import { duracaoLegivel, lerDuracaoDoArquivo } from "@/lib/formato";
-import { enviarParaVimeo } from "@/lib/upload-vimeo";
+import { CONTROLE } from "@/components/campos-formulario";
+import {
+  CampoUploadVimeo,
+  type EstadoUpload,
+} from "@/components/conteudos/campo-upload-vimeo";
+import { duracaoLegivel } from "@/lib/formato";
 import type { Video } from "@/types/api";
 
 /*
@@ -157,87 +159,63 @@ function AbaEnviar({
   aoConcluir: () => void;
 }) {
   const [titulo, setTitulo] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [progresso, setProgresso] = useState<number | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [urlVideo, setUrlVideo] = useState("");
+  const [estadoUpload, setEstadoUpload] = useState<EstadoUpload>("vazio");
+  const [salvando, setSalvando] = useState(false);
 
-  async function enviar() {
-    if (!arquivo) return;
+  async function adicionar() {
+    if (!urlVideo) return;
     aoFalhar("");
-    setEnviando(true);
+    setSalvando(true);
 
-    try {
-      /* Duração lida no navegador: a API aceita sem, mas aí a plataforma do
-         aluno não mostra o tempo da aula nem soma o total do curso. */
-      const duracao = await lerDuracaoDoArquivo(arquivo);
+    // O upload já terminou (upload automático ao selecionar): aqui é só o
+    // vínculo. A duração é preenchida pela API a partir do Vimeo.
+    const r = await vincularVideoExistente(conteudoId, {
+      titulo: titulo.trim() || "Aula",
+      videoUrl: urlVideo,
+      moduloId,
+    });
 
-      const criada = await criarAula(conteudoId, {
-        titulo: titulo.trim() || arquivo.name.replace(/\.[^.]+$/, ""),
-        fileSize: arquivo.size,
-        duracao: duracao ?? undefined,
-        moduloId,
-      });
-
-      if (!criada.ok) {
-        aoFalhar(criada.erro);
-        setEnviando(false);
-        return;
-      }
-
-      if (!criada.vimeoUploadLink) {
-        aoFalhar("A API não devolveu o link de envio.");
-        setEnviando(false);
-        return;
-      }
-
-      /* O arquivo vai do navegador direto para o Vimeo — nunca passa pelo
-         servidor do painel, que tem limite de corpo bem menor. */
-      await enviarParaVimeo(arquivo, criada.vimeoUploadLink, setProgresso);
-      aoConcluir();
-    } catch (falha) {
-      aoFalhar(
-        falha instanceof Error ? falha.message : "Falha ao enviar o vídeo.",
-      );
-      setEnviando(false);
+    setSalvando(false);
+    if (!r.ok) {
+      aoFalhar(r.erro);
+      return;
     }
+    aoConcluir();
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5">
         <span className="text-texto-2 text-sm font-medium">Arquivo</span>
-        <input
-          type="file"
-          accept="video/*"
-          disabled={enviando}
-          onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-          className={CAMPO_ARQUIVO}
+        <CampoUploadVimeo
+          nome="videoUrlAula"
+          aoMudarEstado={setEstadoUpload}
+          aoMudarUrl={setUrlVideo}
         />
-      </label>
+        <span className="text-texto-3 text-xs">
+          O envio começa ao selecionar. Você pode cancelar enquanto sobe.
+        </span>
+      </div>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-texto-2 text-sm font-medium">Título</span>
         <input
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
-          placeholder={arquivo ? arquivo.name.replace(/\.[^.]+$/, "") : "Nome da aula"}
-          disabled={enviando}
+          placeholder="Nome da aula"
+          disabled={salvando}
           className={CONTROLE}
         />
-        <span className="text-texto-3 text-xs">
-          Em branco, usa o nome do arquivo.
-        </span>
       </label>
-
-      {progresso !== null && <ProgressoUpload valor={progresso} />}
 
       <button
         type="button"
-        onClick={enviar}
-        disabled={!arquivo || enviando}
+        onClick={adicionar}
+        disabled={!urlVideo || estadoUpload === "enviando" || salvando}
         className="bg-acento hover:bg-acento-hover ml-auto rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60"
       >
-        {enviando ? "Enviando…" : "Enviar vídeo"}
+        {salvando ? "Adicionando…" : "Adicionar aula"}
       </button>
     </div>
   );

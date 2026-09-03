@@ -8,25 +8,25 @@ import {
 } from "@/app/(painel)/conteudos/acoes";
 import {
   buscarVideosNaBiblioteca,
-  criarAula,
   vincularVideoExistente,
 } from "@/app/(painel)/conteudos/acoes-aulas";
 import { duracaoLegivel } from "@/lib/formato";
 import { CampoPublicar } from "@/components/conteudos/campo-publicar";
 import {
+  CampoUploadVimeo,
+  type EstadoUpload,
+} from "@/components/conteudos/campo-upload-vimeo";
+import {
   BOTAO_PRIMARIO,
   BOTAO_TEXTO,
-  CAMPO_ARQUIVO,
   CONTROLE,
   Campo,
   CampoImagem,
   CampoTags,
-  ProgressoUpload,
   Secao,
 } from "@/components/campos-formulario";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
-import { enviarParaVimeo } from "@/lib/upload-vimeo";
 import type {
   Categoria,
   ConteudoAdmin,
@@ -81,7 +81,9 @@ export function FormularioPodcast({
 
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [progresso, setProgresso] = useState<number | null>(null);
+  // Estado do upload do vídeo (quando enviado por arquivo): trava o botão de
+  // salvar enquanto o envio ao Vimeo não termina.
+  const [estadoUpload, setEstadoUpload] = useState<EstadoUpload>("vazio");
   /* Qual botão foi clicado: "Salvar como rascunho" (true) força rascunho e
      dispensa o vídeo; lido no submit e resetado em seguida. */
   const rascunhoRef = useRef(false);
@@ -138,7 +140,6 @@ export function FormularioPodcast({
     evento.preventDefault();
     setErro(null);
     setEnviando(true);
-    setProgresso(null);
 
     const formulario = evento.currentTarget;
     const dados = new FormData(formulario);
@@ -216,29 +217,29 @@ export function FormularioPodcast({
         }
       } else {
         /*
-          Criação. O vídeo pode vir de um arquivo novo ou da biblioteca — e, ao
-          salvar como rascunho, pode nem vir (anexado depois, na edição, via
-          "Trocar episódio"). O conteúdo nasce sempre como rascunho.
+          Criação. O vídeo já foi enviado ao Vimeo no ato da seleção (upload
+          autom.) ou escolhido da biblioteca — em ambos os casos temos só a URL,
+          e aqui é só o vínculo, sem tus no submit. Ao salvar como rascunho pode
+          nem haver vídeo (anexado depois, na edição). Nasce sempre rascunho.
         */
         const usandoBiblioteca = origemVideo === "biblioteca";
-        const arquivo = dados.get("video");
-        const temArquivo = arquivo instanceof File && arquivo.size > 0;
-        const temVideo = usandoBiblioteca ? !!videoEscolhido?.url : temArquivo;
+        const url = usandoBiblioteca
+          ? (videoEscolhido?.url ?? "")
+          : String(dados.get("videoUrl") ?? "");
+        const temVideo = !!url;
 
         if (!rascunho && !temVideo) {
           setErro(
             usandoBiblioteca
               ? "Escolha um vídeo da biblioteca."
-              : "Selecione o vídeo do episódio.",
+              : "Envie o vídeo do episódio.",
           );
           setEnviando(false);
           return;
         }
 
         dados.delete("video");
-        if (!usandoBiblioteca && temArquivo) {
-          dados.set("fileSize", String((arquivo as File).size));
-        }
+        dados.delete("videoUrl"); // não é campo de conteúdo
 
         const resultado = await criarConteudo(dados);
         if (!resultado.ok) {
@@ -247,16 +248,15 @@ export function FormularioPodcast({
           return;
         }
 
-        /*
-          Anexa o episódio só quando há vídeo. O arquivo vai para um registro em
-          `videos` (não para o introdutório): é `conteudo.videos[0]` que a
-          plataforma toca. Sem vídeo (rascunho), fica para a edição.
-        */
-        if (temVideo && usandoBiblioteca) {
+        // Vincula o episódio só quando há vídeo. É `conteudo.videos[0]` que a
+        // plataforma toca; sem vídeo (rascunho), fica para a edição.
+        if (temVideo) {
           const episodio = await vincularVideoExistente(resultado.id, {
             titulo: String(dados.get("titulo") ?? "Episódio"),
-            videoUrl: videoEscolhido!.url!,
-            duracao: videoEscolhido!.duracao ?? undefined,
+            videoUrl: url,
+            duracao: usandoBiblioteca
+              ? (videoEscolhido?.duracao ?? undefined)
+              : undefined,
           });
           if (!episodio.ok) {
             setErro(
@@ -264,33 +264,6 @@ export function FormularioPodcast({
             );
             setEnviando(false);
             return;
-          }
-        } else if (temVideo) {
-          const episodio = await criarAula(resultado.id, {
-            titulo: String(dados.get("titulo") ?? "Episódio"),
-            fileSize: (arquivo as File).size,
-          });
-          if (!episodio.ok) {
-            setErro(
-              `O episódio foi criado, mas não foi possível registrar o vídeo: ${episodio.erro}`,
-            );
-            setEnviando(false);
-            return;
-          }
-          if (episodio.vimeoUploadLink) {
-            try {
-              await enviarParaVimeo(
-                arquivo as File,
-                episodio.vimeoUploadLink,
-                setProgresso,
-              );
-            } catch {
-              setErro(
-                "O episódio foi criado, mas o envio do vídeo falhou. Abra a edição para reenviar.",
-              );
-              setEnviando(false);
-              return;
-            }
           }
         }
       }
@@ -515,12 +488,7 @@ export function FormularioPodcast({
           </div>
 
           {origemVideo === "arquivo" ? (
-            <input
-              type="file"
-              name="video"
-              accept="video/*"
-              className={CAMPO_ARQUIVO}
-            />
+            <CampoUploadVimeo nome="videoUrl" aoMudarEstado={setEstadoUpload} />
           ) : (
             <div className="flex flex-col gap-2">
               <input
@@ -589,8 +557,6 @@ export function FormularioPodcast({
         </p>
       )}
 
-      {progresso !== null && <ProgressoUpload valor={progresso} />}
-
       {/*
         Barra de ações no fim da página. O botão de salvar vive fora do <form>
         e o alcança pelo atributo `form` — assim as seções acima podem ter
@@ -600,7 +566,7 @@ export function FormularioPodcast({
         <button
           type="submit"
           form="formulario-podcast"
-          disabled={enviando}
+          disabled={enviando || estadoUpload === "enviando"}
           onClick={() => {
             rascunhoRef.current = false;
           }}
@@ -608,15 +574,17 @@ export function FormularioPodcast({
         >
           {enviando
             ? "Salvando…"
-            : editando
-              ? "Salvar alterações"
-              : "Criar episódio"}
+            : estadoUpload === "enviando"
+              ? "Enviando vídeo…"
+              : editando
+                ? "Salvar alterações"
+                : "Criar episódio"}
         </button>
 
         <button
           type="submit"
           form="formulario-podcast"
-          disabled={enviando}
+          disabled={enviando || estadoUpload === "enviando"}
           onClick={() => {
             rascunhoRef.current = true;
           }}

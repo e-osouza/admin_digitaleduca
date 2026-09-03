@@ -6,7 +6,10 @@ import {
   atualizarConteudo,
   criarConteudo,
 } from "@/app/(painel)/conteudos/acoes";
-import { criarAula, criarModulo } from "@/app/(painel)/conteudos/acoes-aulas";
+import {
+  criarModulo,
+  vincularVideoExistente,
+} from "@/app/(painel)/conteudos/acoes-aulas";
 import {
   CompositorModulos,
   type ModuloNovo,
@@ -14,18 +17,19 @@ import {
 import {
   BOTAO_PRIMARIO,
   BOTAO_TEXTO,
-  CAMPO_ARQUIVO,
   CONTROLE,
   Campo,
   CampoImagem,
   CampoTags,
-  ProgressoUpload,
   Secao,
 } from "@/components/campos-formulario";
 import { SeletorPessoas } from "@/components/seletor-pessoas";
 import { CampoPublicar } from "@/components/conteudos/campo-publicar";
+import {
+  CampoUploadVimeo,
+  type EstadoUpload,
+} from "@/components/conteudos/campo-upload-vimeo";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
-import { enviarParaVimeo } from "@/lib/upload-vimeo";
 import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria, TipoConteudo } from "@/types/api";
 
 /**
@@ -80,7 +84,11 @@ export function FormularioConteudo({
 
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [progresso, setProgresso] = useState<number | null>(null);
+  // Estados dos uploads (começam ao selecionar): travam o botão de salvar.
+  const [estadoVideo, setEstadoVideo] = useState<EstadoUpload>("vazio");
+  const [estadoTeaser, setEstadoTeaser] = useState<EstadoUpload>("vazio");
+  const enviandoVideo =
+    estadoVideo === "enviando" || estadoTeaser === "enviando";
   /* "Salvar como rascunho" (true) força rascunho; lido no submit e resetado. */
   const rascunhoRef = useRef(false);
   const [gratuitoTipo, setGratuitoTipo] = useState(
@@ -101,7 +109,6 @@ export function FormularioConteudo({
     evento.preventDefault();
     setErro(null);
     setEnviando(true);
-    setProgresso(null);
 
     const formulario = evento.currentTarget;
     const dados = new FormData(formulario);
@@ -135,28 +142,16 @@ export function FormularioConteudo({
         }
       } else {
         /*
-         * Introdutório é opcional desde 19/08/2026: sem arquivo, não mandamos
-         * `fileSize` e a API cria o conteúdo sem teaser — a pasta no Vimeo
-         * continua sendo criada, então módulos e aulas seguem funcionando.
+         * Teaser e vídeo principal já subiram ao Vimeo no ato da seleção; aqui
+         * só temos as URLs. O teaser (`videoIntrodutorioUrl`) viaja no corpo do
+         * conteúdo (montarCorpo o encaminha); o principal (`videoUrl`) é
+         * vinculado como aula depois. Ambos são opcionais — dá para enviar
+         * depois, na edição.
          */
-        const bruto = dados.get("video");
-        const video =
-          bruto instanceof File && bruto.size > 0 ? bruto : null;
-
-        /*
-         * Os dois arquivos são capturados ANTES de saírem do FormData: nenhum
-         * deles vai para a Server Action — sobem direto para o Vimeo. Para a
-         * API vai só o tamanho do introdutório.
-         */
-        const brutoConteudo = dados.get("videoConteudo");
-        const videoConteudo =
-          brutoConteudo instanceof File && brutoConteudo.size > 0
-            ? brutoConteudo
-            : null;
-
+        const videoUrl = String(dados.get("videoUrl") ?? "");
+        dados.delete("videoUrl");
         dados.delete("video");
         dados.delete("videoConteudo");
-        if (video) dados.set("fileSize", String(video.size));
 
         const resultado = await criarConteudo(dados);
         if (!resultado.ok) {
@@ -165,55 +160,22 @@ export function FormularioConteudo({
           return;
         }
 
-        if (video && resultado.vimeoUploadLink) {
-          try {
-            await enviarParaVimeo(video, resultado.vimeoUploadLink, setProgresso);
-          } catch {
-            /*
-             * O conteúdo já existe no banco; só o vídeo falhou. Sem este
-             * aviso, tentar de novo criaria um conteúdo duplicado.
-             */
-            setErro(
-              "O conteúdo foi criado, mas o envio do introdutório falhou. Abra a edição para reenviar.",
-            );
-            setEnviando(false);
-            return;
-          }
-        }
-
         /*
-         * Vídeo único: o arquivo principal vira um registro em `videos`, que é
-         * onde a plataforma do aluno procura o que tocar. O introdutório
-         * acima é só o teaser.
+         * Vídeo único: o principal vira `conteudo.videos[0]`, que é onde a
+         * plataforma procura o que tocar. Cria só o vínculo — o upload já foi.
          */
-        if (!comModulos && videoConteudo) {
-          const aula = await criarAula(resultado.id, {
+        if (!comModulos && videoUrl) {
+          const aula = await vincularVideoExistente(resultado.id, {
             titulo: String(dados.get("titulo") ?? "Vídeo"),
-            fileSize: videoConteudo.size,
+            videoUrl,
           });
 
           if (!aula.ok) {
             setErro(
-              `O conteúdo foi criado, mas o vídeo não pôde ser registrado: ${aula.erro}`,
+              `O conteúdo foi criado, mas o vídeo não pôde ser vinculado: ${aula.erro}`,
             );
             setEnviando(false);
             return;
-          }
-
-          if (aula.vimeoUploadLink) {
-            try {
-              await enviarParaVimeo(
-                videoConteudo,
-                aula.vimeoUploadLink,
-                setProgresso,
-              );
-            } catch {
-              setErro(
-                "O conteúdo foi criado, mas o envio do vídeo falhou. Abra a edição para reenviar.",
-              );
-              setEnviando(false);
-              return;
-            }
           }
         }
 
@@ -514,26 +476,22 @@ export function FormularioConteudo({
           {!comModulos && (
             <Secao
               titulo="Vídeo do conteúdo"
-              ajuda="O vídeo que o aluno assiste. Opcional aqui — dá para enviar depois na edição."
+              ajuda="O vídeo que o aluno assiste. O envio começa ao selecionar; opcional aqui — dá para enviar depois na edição."
             >
-              <input
-                type="file"
-                name="videoConteudo"
-                accept="video/*"
-                className={CAMPO_ARQUIVO}
+              <CampoUploadVimeo
+                nome="videoUrl"
+                aoMudarEstado={setEstadoVideo}
               />
             </Secao>
           )}
 
           <Secao
             titulo="Vídeo introdutório"
-            ajuda="Opcional. É o teaser da página do conteúdo, não o vídeo que o aluno assiste."
+            ajuda="Opcional. É o teaser da página do conteúdo, não o vídeo que o aluno assiste. O envio começa ao selecionar."
           >
-            <input
-              type="file"
-              name="video"
-              accept="video/*"
-              className={CAMPO_ARQUIVO}
+            <CampoUploadVimeo
+              nome="videoIntrodutorioUrl"
+              aoMudarEstado={setEstadoTeaser}
             />
           </Secao>
         </>
@@ -552,7 +510,6 @@ export function FormularioConteudo({
         </p>
       )}
 
-      {progresso !== null && <ProgressoUpload valor={progresso} />}
 
       {/*
         Barra de ações no fim da página. O botão de salvar vive fora do <form>
@@ -563,7 +520,7 @@ export function FormularioConteudo({
         <button
           type="submit"
           form="formulario-conteudo"
-          disabled={enviando}
+          disabled={enviando || enviandoVideo}
           onClick={() => {
             rascunhoRef.current = false;
           }}
@@ -571,15 +528,17 @@ export function FormularioConteudo({
         >
           {enviando
             ? "Salvando…"
-            : editando
-              ? "Salvar alterações"
-              : "Criar conteúdo"}
+            : enviandoVideo
+              ? "Enviando vídeo…"
+              : editando
+                ? "Salvar alterações"
+                : "Criar conteúdo"}
         </button>
 
         <button
           type="submit"
           form="formulario-conteudo"
-          disabled={enviando}
+          disabled={enviando || enviandoVideo}
           onClick={() => {
             rascunhoRef.current = true;
           }}

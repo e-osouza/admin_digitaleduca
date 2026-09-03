@@ -32,6 +32,8 @@ const CAMPOS_TEXTO = [
   "gratuitoAte",
   "apresentador",
   "publicado",
+  // URI de um teaser já enviado ao Vimeo (upload no ato da seleção).
+  "videoIntrodutorioUrl",
 ] as const;
 
 /** Arrays viajam como JSON string no multipart — o backend faz `JSON.parse`. */
@@ -442,5 +444,51 @@ export async function obterProntidao(id: number): Promise<{
     return await resposta.json();
   } catch {
     return null;
+  }
+}
+
+/**
+ * Abre um ticket de upload no Vimeo (tus) para subir um vídeo ANTES de o
+ * conteúdo existir. Devolve a URL de upload e a URI final do vídeo, ou null.
+ */
+export async function criarTicketUpload(
+  fileSize: number,
+): Promise<{ uri: string; uploadLink: string } | null> {
+  const token = await lerToken();
+  if (!token) return null;
+  try {
+    const resposta = await fetch(`${API_URL}/vimeo-client/upload-ticket`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fileSize }),
+      cache: "no-store",
+    });
+    if (!resposta.ok) return null;
+    const dados = await resposta.json();
+    return dados?.uri && dados?.uploadLink
+      ? { uri: dados.uri, uploadLink: dados.uploadLink }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Apaga um vídeo no Vimeo (usado ao cancelar/trocar um upload). */
+export async function apagarVideoVimeo(uri: string): Promise<void> {
+  const token = await lerToken();
+  if (!token) return;
+  const id = uri.replace("/videos/", "").trim();
+  if (!id) return;
+  try {
+    await fetch(`${API_URL}/vimeo-client/video/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch {
+    /* melhor esforço: um vídeo órfão no Vimeo não pode travar a tela */
   }
 }
