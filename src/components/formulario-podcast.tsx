@@ -13,7 +13,6 @@ import { UploadVideoProvider } from "@/components/conteudos/upload-video-context
 import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import {
-  BOTAO_TEXTO,
   CONTROLE,
   Campo,
   CampoTags,
@@ -393,19 +392,6 @@ export function FormularioPodcast({
         </p>
       )}
 
-      {/* Rodapé da coluna principal: cancelar e excluir. Publicar mora na sidebar. */}
-      <div className="border-borda-suave flex items-center gap-3 border-t pt-5">
-        <button
-          type="button"
-          onClick={() => router.push("/podcasts")}
-          disabled={enviando}
-          className={BOTAO_TEXTO}
-        >
-          Cancelar
-        </button>
-
-        {acaoExcluir && <div className="ml-auto">{acaoExcluir}</div>}
-      </div>
       </div>
 
       {/* ------------------------------ sidebar ----------------------------- */}
@@ -424,6 +410,7 @@ export function FormularioPodcast({
           aoSalvar={() => {
             rascunhoRef.current = false;
           }}
+          acaoExcluir={acaoExcluir}
         />
 
         <section className="border-borda bg-superficie overflow-hidden rounded-xl border">

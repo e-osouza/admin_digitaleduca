@@ -40,6 +40,7 @@ export function BlocoPublicar({
   dataCriacaoInicial,
   rotuloCriar = "Criar conteúdo",
   comVideo = true,
+  acaoExcluir,
 }: {
   formId: string;
   editando: boolean;
@@ -56,6 +57,8 @@ export function BlocoPublicar({
    * Falso para tipos sem vídeo próprio (trilha), que também não têm essa trava.
    */
   comVideo?: boolean;
+  /** "Mover para a lixeira" (edição). Fica no rodapé do bloco, discreto. */
+  acaoExcluir?: React.ReactNode;
 }) {
   const [prontidao, setProntidao] = useState<Prontidao | null>(null);
 
@@ -165,6 +168,13 @@ export function BlocoPublicar({
                 ? "Atualizar"
                 : "Publicar"}
         </button>
+
+        {/* Mover para a lixeira: junto do publicar, mas separado por uma linha. */}
+        {acaoExcluir && (
+          <div className="border-borda-suave flex justify-end border-t pt-3">
+            {acaoExcluir}
+          </div>
+        )}
       </div>
     </section>
   );

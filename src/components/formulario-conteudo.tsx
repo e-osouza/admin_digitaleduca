@@ -15,7 +15,6 @@ import {
   type ModuloNovo,
 } from "@/components/compositor-modulos";
 import {
-  BOTAO_TEXTO,
   CONTROLE,
   Campo,
   CampoTags,
@@ -465,19 +464,6 @@ export function FormularioConteudo({
       )}
 
 
-      {/* Rodapé da coluna principal: cancelar e excluir. Publicar mora na sidebar. */}
-      <div className="border-borda-suave flex items-center gap-3 border-t pt-5">
-        <button
-          type="button"
-          onClick={() => router.push("/conteudos")}
-          disabled={enviando}
-          className={BOTAO_TEXTO}
-        >
-          Cancelar
-        </button>
-
-        {acaoExcluir && <div className="ml-auto">{acaoExcluir}</div>}
-      </div>
       </div>
 
       {/* ------------------------------ sidebar ----------------------------- */}
@@ -496,6 +482,7 @@ export function FormularioConteudo({
           aoSalvar={() => {
             rascunhoRef.current = false;
           }}
+          acaoExcluir={acaoExcluir}
         />
 
         <section className="border-borda bg-superficie overflow-hidden rounded-xl border">
