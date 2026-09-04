@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BotaoExcluirConteudo } from "@/components/botao-excluir-conteudo";
-import { MoverPara } from "@/components/mover-para";
 import { FormularioPodcast } from "@/components/formulario-podcast";
 import { PreviaVideo } from "@/components/previa-video";
 import { TrocarEpisodio } from "@/components/trocar-episodio";
@@ -84,12 +83,6 @@ export default async function PaginaEditarPodcast({
         }
         secoes={
           <>
-            <MoverPara
-              id={podcast.id}
-              atual="PODCAST"
-              titulo={podcast.titulo}
-            />
-
           <section className="border-borda-suave bg-superficie flex flex-col gap-4 rounded-xl border p-5">
             <div>
               <h2 className="text-texto font-semibold">Vídeo do episódio</h2>
