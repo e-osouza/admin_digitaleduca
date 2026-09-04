@@ -27,6 +27,7 @@ import { UploadVideoProvider } from "@/components/conteudos/upload-video-context
 import { CampoImagemBiblioteca } from "@/components/conteudos/campo-imagem-biblioteca";
 import { CampoVideoBiblioteca } from "@/components/conteudos/campo-video-biblioteca";
 import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
+import { rotaDeEdicao, rotaDoTipo } from "@/lib/tipos";
 import type { Categoria, ConteudoAdmin, Instrutor, Subcategoria, TipoConteudo } from "@/types/api";
 
 /**
@@ -195,18 +196,18 @@ export function FormularioConteudo({
               `O conteúdo foi criado, mas alguns módulos falharam — ${falhas.join("; ")}. Crie-os na edição.`,
             );
             setEnviando(false);
-            router.push(`/conteudos/${resultado.id}/editar?feito=criado`);
+            router.push(`${rotaDeEdicao(tipo, resultado.id)}?feito=criado`);
             return;
           }
         }
 
         // Vai direto para a edição: sempre há o que conferir ou completar.
-        router.push(`/conteudos/${resultado.id}/editar`);
+        router.push(rotaDeEdicao(tipo, resultado.id));
         router.refresh();
         return;
       }
 
-      router.push("/conteudos?feito=salvo");
+      router.push(`${rotaDoTipo(tipo)}?feito=salvo`);
       router.refresh();
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : "Não foi possível salvar.");

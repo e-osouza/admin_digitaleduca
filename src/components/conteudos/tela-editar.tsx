@@ -150,7 +150,11 @@ export async function TelaEditarConteudo({
         instrutores={instrutores}
         nomesDeTags={nomesDeTags}
         acaoExcluir={
-          <BotaoExcluirConteudo id={conteudo.id} titulo={conteudo.titulo} />
+          <BotaoExcluirConteudo
+            id={conteudo.id}
+            titulo={conteudo.titulo}
+            destino={rotaDoTipo(conteudo.tipo)}
+          />
         }
         secoes={
           <>
