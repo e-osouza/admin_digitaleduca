@@ -124,6 +124,8 @@ export type FiltrosConteudo = {
   /** `true` só publicados, `false` só rascunhos, ausente = todos. */
   publicado?: boolean;
   destaque?: boolean;
+  /** `true` lista SÓ a lixeira (excluídos); ausente esconde a lixeira. */
+  lixeira?: boolean;
   ordenar?: string;
   page?: number;
   limit?: number;
@@ -156,6 +158,7 @@ export function buscarConteudos(filtros: FiltrosConteudo) {
     busca.set("publicado", String(filtros.publicado));
   }
   if (filtros.destaque) busca.set("destaque", "true");
+  if (filtros.lixeira) busca.set("lixeira", "true");
   if (filtros.ordenar) busca.set("ordenar", filtros.ordenar);
   busca.set("page", String(filtros.page ?? 1));
   busca.set("limit", String(filtros.limit ?? LIMITE_MAXIMO_BUSCA));

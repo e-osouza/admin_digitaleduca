@@ -343,6 +343,94 @@ export async function excluirEmLote(ids: number[]): Promise<ResultadoLote> {
   );
 }
 
+/* ---------------- lixeira ---------------- */
+
+/*
+  A exclusão movida para a lixeira afeta todas as telas de conteúdo (MasterClass,
+  cursos, trilhas, podcasts), então revalidamos as quatro. Como cada uma tem sua
+  aba de lixeira, um item movido some de uma e aparece na outra sem F5.
+*/
+function revalidarListas() {
+  for (const rota of ["/conteudos", "/cursos", "/trilhas", "/podcasts"]) {
+    revalidatePath(rota);
+  }
+}
+
+/** Restaura um conteúdo da lixeira (volta como rascunho). */
+export async function restaurarConteudo(id: number): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}/restaurar`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidarListas();
+  return { ok: true, id };
+}
+
+/** Exclui DEFINITIVAMENTE um conteúdo da lixeira — apaga do Vimeo, sem volta. */
+export async function excluirDefinitivo(id: number): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/${id}/definitivo`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidarListas();
+  return { ok: true, id };
+}
+
+/** Esvazia a lixeira — exclui definitivamente todos os conteúdos excluídos. */
+export async function esvaziarLixeira(): Promise<Resultado> {
+  const token = await lerToken();
+  if (!token) return { ok: false, erro: "Sessão expirada." };
+
+  const resposta = await fetch(`${API_URL}/conteudos/lixeira`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!resposta.ok) return { ok: false, erro: await mensagemDeErro(resposta) };
+
+  revalidarListas();
+  return { ok: true, id: 0 };
+}
+
+/** Restaura vários conteúdos da lixeira de uma vez. */
+export async function restaurarEmLote(ids: number[]): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) =>
+    fetch(`${API_URL}/conteudos/${id}/restaurar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+  );
+}
+
+/** Exclui definitivamente vários conteúdos da lixeira de uma vez. */
+export async function excluirDefinitivoEmLote(
+  ids: number[],
+): Promise<ResultadoLote> {
+  return emLote(ids, (id, token) =>
+    fetch(`${API_URL}/conteudos/${id}/definitivo`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+  );
+}
+
 /**
  * Move um conteúdo entre os quatro tipos do menu.
  *

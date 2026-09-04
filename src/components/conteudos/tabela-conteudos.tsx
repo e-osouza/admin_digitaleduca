@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
+  excluirDefinitivo,
+  excluirDefinitivoEmLote,
   excluirEmLote,
   publicarEmLote,
+  restaurarConteudo,
+  restaurarEmLote,
 } from "@/app/(painel)/conteudos/acoes";
 import { ROTULO_TIPO, rotaDeEdicao } from "@/lib/tipos";
 import type { ConteudoBusca } from "@/types/api";
@@ -75,10 +79,13 @@ function Ordenavel({
 export function TabelaConteudos({
   conteudos,
   base = "/conteudos",
+  lixeira = false,
 }: {
   conteudos: ConteudoBusca[];
   /** Rota da listagem — os links de ordenação escrevem nela. */
   base?: string;
+  /** Aba Lixeira: troca as ações por Restaurar / Excluir definitivamente. */
+  lixeira?: boolean;
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -137,56 +144,89 @@ export function TabelaConteudos({
           </span>
 
           <div className="ml-auto flex flex-wrap gap-2">
-            <BotaoLote
-              disabled={processando}
-              onClick={() =>
-                executar(
-                  () => publicarEmLote(selecionados, true),
-                  (n) => `${n} ${n === 1 ? "publicado" : "publicados"}.`,
-                )
-              }
-            >
-              Publicar
-            </BotaoLote>
+            {lixeira ? (
+              <>
+                <BotaoLote
+                  disabled={processando}
+                  onClick={() =>
+                    executar(
+                      () => restaurarEmLote(selecionados),
+                      (n) =>
+                        `${n} ${n === 1 ? "restaurado" : "restaurados"}.`,
+                    )
+                  }
+                >
+                  Restaurar
+                </BotaoLote>
 
-            <BotaoLote
-              disabled={processando}
-              onClick={() =>
-                executar(
-                  () => publicarEmLote(selecionados, false),
-                  (n) =>
-                    `${n} ${n === 1 ? "movido" : "movidos"} para rascunho.`,
-                )
-              }
-            >
-              Passar para rascunho
-            </BotaoLote>
+                <BotaoLote
+                  perigo
+                  disabled={processando}
+                  onClick={() => {
+                    const quantos = selecionados.length;
+                    if (
+                      !window.confirm(
+                        `Excluir definitivamente ${quantos} ${quantos === 1 ? "conteúdo" : "conteúdos"}? Isso apaga o vídeo no Vimeo e NÃO há como desfazer.`,
+                      )
+                    ) {
+                      return;
+                    }
+                    executar(
+                      () => excluirDefinitivoEmLote(selecionados),
+                      (n) => `${n} ${n === 1 ? "excluído" : "excluídos"}.`,
+                    );
+                  }}
+                >
+                  Excluir definitivamente
+                </BotaoLote>
+              </>
+            ) : (
+              <>
+                <BotaoLote
+                  disabled={processando}
+                  onClick={() =>
+                    executar(
+                      () => publicarEmLote(selecionados, true),
+                      (n) => `${n} ${n === 1 ? "publicado" : "publicados"}.`,
+                    )
+                  }
+                >
+                  Publicar
+                </BotaoLote>
 
-            <BotaoLote
-              perigo
-              disabled={processando}
-              onClick={() => {
-                /*
-                  Exclusão em lote é o único caminho sem volta desta tela — e o
-                  número no aviso é o que separa "excluir os 3 que escolhi" de
-                  "excluir os 24 da página".
-                */
-                const quantos = selecionados.length;
-                if (
-                  !window.confirm(
-                    `Excluir ${quantos} ${quantos === 1 ? "conteúdo" : "conteúdos"}? Não há como desfazer.`,
-                  )
-                ) {
-                  return;
-                }
-                executar(
-                  () => excluirEmLote(selecionados),
-                  (n) => `${n} ${n === 1 ? "excluído" : "excluídos"}.`,
-                );
-              }}
-            >
-              Excluir
-            </BotaoLote>
+                <BotaoLote
+                  disabled={processando}
+                  onClick={() =>
+                    executar(
+                      () => publicarEmLote(selecionados, false),
+                      (n) =>
+                        `${n} ${n === 1 ? "movido" : "movidos"} para rascunho.`,
+                    )
+                  }
+                >
+                  Passar para rascunho
+                </BotaoLote>
+
+                <BotaoLote
+                  perigo
+                  disabled={processando}
+                  onClick={() => {
+                    /*
+                      Mover para a lixeira tem volta (dá para restaurar), mas o
+                      número no aviso ainda separa "os 3 que escolhi" dos "24 da
+                      página".
+                    */
+                    executar(
+                      () => excluirEmLote(selecionados),
+                      (n) =>
+                        `${n} ${n === 1 ? "movido" : "movidos"} para a lixeira.`,
+                    );
+                  }}
+                >
+                  Mover para a lixeira
+                </BotaoLote>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -265,6 +305,7 @@ export function TabelaConteudos({
                   conteudo={conteudo}
                   marcado={selecionados.includes(conteudo.id)}
                   aoMarcar={() => alternar(conteudo.id)}
+                  lixeira={lixeira}
                 />
               ))}
             </tbody>
@@ -299,13 +340,24 @@ function Linha({
   conteudo,
   marcado,
   aoMarcar,
+  lixeira = false,
 }: {
   conteudo: ConteudoBusca;
   marcado: boolean;
   aoMarcar: () => void;
+  lixeira?: boolean;
 }) {
+  const router = useRouter();
+  const [processando, comecarTransicao] = useTransition();
   const miniatura = conteudo.thumbnailMobile ?? conteudo.thumbnailDesktop;
   const instrutores = conteudo.instrutores.map((i) => i.nome).join(", ");
+
+  function agir(acao: () => Promise<{ ok: boolean }>) {
+    comecarTransicao(async () => {
+      await acao();
+      router.refresh();
+    });
+  }
 
   return (
     <tr
@@ -338,18 +390,25 @@ function Linha({
           </span>
 
           <span className="flex min-w-0 flex-col">
-            <Link
-              href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
-              className="text-texto hover:text-acento-claro truncate font-medium transition-colors"
-            >
-              {conteudo.titulo}
-            </Link>
+            {lixeira ? (
+              /* Na lixeira o título não leva à edição — as ações são só duas. */
+              <span className="text-texto truncate font-medium">
+                {conteudo.titulo}
+              </span>
+            ) : (
+              <Link
+                href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
+                className="text-texto hover:text-acento-claro truncate font-medium transition-colors"
+              >
+                {conteudo.titulo}
+              </Link>
+            )}
 
             <span className="flex flex-wrap items-center gap-x-2">
-              {conteudo.publicado === false && (
+              {conteudo.publicado === false && !lixeira && (
                 <span className="text-aviso text-xs font-medium">Rascunho</span>
               )}
-              {conteudo.destaque && (
+              {conteudo.destaque && !lixeira && (
                 <span className="text-acento-claro text-xs font-medium">
                   Em destaque
                 </span>
@@ -363,25 +422,60 @@ function Linha({
               Em telas de toque ficam sempre visíveis, porque ali não há hover.
             */}
             <span className="mt-1 flex gap-2 text-xs opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-              <Link
-                href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
-                className="text-texto-3 hover:text-acento-claro transition-colors"
-              >
-                Editar
-              </Link>
-              {PLATAFORMA && (
+              {lixeira ? (
                 <>
+                  <button
+                    type="button"
+                    disabled={processando}
+                    onClick={() => agir(() => restaurarConteudo(conteudo.id))}
+                    className="text-texto-3 hover:text-acento-claro transition-colors disabled:opacity-50"
+                  >
+                    Restaurar
+                  </button>
                   <span aria-hidden className="text-borda">
                     |
                   </span>
-                  <a
-                    href={`${PLATAFORMA}/conteudo/${conteudo.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    disabled={processando}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Excluir definitivamente "${conteudo.titulo}"? Isso apaga o vídeo no Vimeo e NÃO há como desfazer.`,
+                        )
+                      ) {
+                        return;
+                      }
+                      agir(() => excluirDefinitivo(conteudo.id));
+                    }}
+                    className="text-alerta hover:text-alerta/80 transition-colors disabled:opacity-50"
+                  >
+                    Excluir definitivamente
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={rotaDeEdicao(conteudo.tipo, conteudo.id)}
                     className="text-texto-3 hover:text-acento-claro transition-colors"
                   >
-                    Ver na plataforma
-                  </a>
+                    Editar
+                  </Link>
+                  {PLATAFORMA && (
+                    <>
+                      <span aria-hidden className="text-borda">
+                        |
+                      </span>
+                      <a
+                        href={`${PLATAFORMA}/conteudo/${conteudo.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-texto-3 hover:text-acento-claro transition-colors"
+                      >
+                        Ver na plataforma
+                      </a>
+                    </>
+                  )}
                 </>
               )}
             </span>

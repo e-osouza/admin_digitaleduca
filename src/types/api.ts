@@ -52,6 +52,7 @@ export interface BuscaConteudos extends ListaPaginada<ConteudoBusca> {
     publicados: number;
     rascunhos: number;
     destaques: number;
+    lixeira: number;
   } | null;
 }
 

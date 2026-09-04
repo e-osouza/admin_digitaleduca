@@ -18,7 +18,7 @@ import { useEffect } from "react";
 const MENSAGENS: Record<string, string> = {
   criado: "Criado com sucesso.",
   salvo: "Alterações salvas.",
-  excluido: "Removido com sucesso.",
+  excluido: "Movido para a lixeira.",
 };
 
 export function AvisoAcao() {

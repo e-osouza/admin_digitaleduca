@@ -43,7 +43,7 @@ export function BotaoExcluirConteudo({
           onClick={() => setConfirmando(true)}
           className="border-borda text-alerta hover:bg-alerta/10 hover:border-alerta/40 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
         >
-          Excluir
+          Mover para a lixeira
         </button>
         {erro && (
           <p role="alert" className="text-alerta text-xs">
@@ -57,9 +57,9 @@ export function BotaoExcluirConteudo({
   return (
     <div className="border-alerta/40 bg-alerta/5 flex flex-col gap-2 rounded-lg border p-3">
       <p className="text-texto text-sm">
-        Excluir <strong>{titulo}</strong>? A pasta inteira no Vimeo — com todos
-        os vídeos dos módulos — e as imagens do servidor também são apagadas.
-        Não dá para desfazer.
+        Mover <strong>{titulo}</strong> para a lixeira? Ele sai do ar na
+        plataforma, mas nada é apagado — o vídeo no Vimeo continua lá e você
+        pode restaurar pela aba <strong>Lixeira</strong>.
       </p>
       <div className="flex gap-2">
         <button
@@ -68,7 +68,7 @@ export function BotaoExcluirConteudo({
           disabled={excluindo}
           className="bg-alerta rounded-lg px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {excluindo ? "Excluindo…" : "Sim, excluir"}
+          {excluindo ? "Movendo…" : "Sim, mover para a lixeira"}
         </button>
         <button
           type="button"

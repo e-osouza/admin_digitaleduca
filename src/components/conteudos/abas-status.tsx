@@ -27,12 +27,14 @@ export function AbasStatus({
   rotulos,
   parametro = "status",
 }: {
-  /** As quatro abas de conteúdo. Ignorado quando `abas` é passado. */
+  /** As abas de conteúdo. Ignorado quando `abas` é passado. */
   contadores?: {
     todos: number;
     publicados: number;
     rascunhos: number;
     destaques: number;
+    /** Excluídos (lixeira). Ausente nas telas que não têm lixeira. */
+    lixeira?: number;
   };
   /** Abas arbitrárias — a chave vazia é sempre "todos". */
   abas?: Aba[];
@@ -71,6 +73,16 @@ export function AbasStatus({
             rotulo: rotulos?.destaques ?? "Em destaque",
             total: contadores.destaques,
           },
+          /* A lixeira só entra nas telas que a informam (contadores.lixeira). */
+          ...(contadores.lixeira !== undefined
+            ? [
+                {
+                  chave: "lixeira",
+                  rotulo: "Lixeira",
+                  total: contadores.lixeira,
+                },
+              ]
+            : []),
         ]
       : []);
 

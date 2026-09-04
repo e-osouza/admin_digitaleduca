@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AvisoAcao } from "@/components/aviso-acao";
 import { AbasStatus } from "@/components/conteudos/abas-status";
+import { BotaoEsvaziarLixeira } from "@/components/conteudos/botao-esvaziar-lixeira";
 import { TabelaConteudos } from "@/components/conteudos/tabela-conteudos";
 import { FiltrosConteudo } from "@/components/filtros-conteudo";
 import { Paginacao } from "@/components/paginacao";
@@ -19,10 +20,14 @@ export const metadata = { title: "MasterClass · Painel DigitalEduca" };
  * `publicado` aceita `false`, que é um valor útil e não "ausente" — por isso
  * o mapa guarda o booleano explícito em vez de depender de veracidade.
  */
-const STATUS: Record<string, { publicado?: boolean; destaque?: boolean }> = {
+const STATUS: Record<
+  string,
+  { publicado?: boolean; destaque?: boolean; lixeira?: boolean }
+> = {
   publicados: { publicado: true },
   rascunhos: { publicado: false },
   destaques: { destaque: true },
+  lixeira: { lixeira: true },
 };
 
 export default async function PaginaConteudos({
@@ -119,12 +124,23 @@ export default async function PaginaConteudos({
 
       <FiltrosConteudo categorias={categorias} semTipo />
 
+      {status === "lixeira" && resultado.data.length > 0 && (
+        <div className="flex justify-end">
+          <BotaoEsvaziarLixeira total={resultado.contadores?.lixeira ?? 0} />
+        </div>
+      )}
+
       {resultado.data.length === 0 ? (
         <p className="border-borda-suave bg-superficie text-texto-2 rounded-xl border p-8 text-center text-sm">
-          Nenhuma MasterClass encontrada com esses filtros.
+          {status === "lixeira"
+            ? "A lixeira está vazia."
+            : "Nenhuma MasterClass encontrada com esses filtros."}
         </p>
       ) : (
-        <TabelaConteudos conteudos={resultado.data} />
+        <TabelaConteudos
+          conteudos={resultado.data}
+          lixeira={status === "lixeira"}
+        />
       )}
 
       <Paginacao

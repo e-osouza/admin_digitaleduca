@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AvisoAcao } from "@/components/aviso-acao";
 import { AbasStatus } from "@/components/conteudos/abas-status";
+import { BotaoEsvaziarLixeira } from "@/components/conteudos/botao-esvaziar-lixeira";
 import { TabelaConteudos } from "@/components/conteudos/tabela-conteudos";
 import { FiltrosSimples } from "@/components/filtros-simples";
 import { Paginacao } from "@/components/paginacao";
@@ -18,10 +19,14 @@ import type { TipoConteudo } from "@/types/api";
  * precisavam ganhar cada recurso duas vezes — e mover entre elas era
  * impossível.
  */
-const STATUS: Record<string, { publicado?: boolean; destaque?: boolean }> = {
+const STATUS: Record<
+  string,
+  { publicado?: boolean; destaque?: boolean; lixeira?: boolean }
+> = {
   publicados: { publicado: true },
   rascunhos: { publicado: false },
   destaques: { destaque: true },
+  lixeira: { lixeira: true },
 };
 
 export async function TelaPorTipo({
@@ -114,13 +119,29 @@ export async function TelaPorTipo({
 
       <FiltrosSimples base={base} placeholder={`Buscar ${singular}…`} />
 
+      {status === "lixeira" && resultado.data.length > 0 && (
+        <div className="flex justify-end">
+          <BotaoEsvaziarLixeira total={resultado.contadores?.lixeira ?? 0} />
+        </div>
+      )}
+
       {resultado.data.length === 0 ? (
         <p className="border-borda-suave bg-superficie text-texto-2 rounded-xl border p-8 text-center text-sm">
-          {feminino ? "Nenhuma" : "Nenhum"} {singular}{" "}
-          {feminino ? "encontrada" : "encontrado"} com esses filtros.
+          {status === "lixeira" ? (
+            "A lixeira está vazia."
+          ) : (
+            <>
+              {feminino ? "Nenhuma" : "Nenhum"} {singular}{" "}
+              {feminino ? "encontrada" : "encontrado"} com esses filtros.
+            </>
+          )}
         </p>
       ) : (
-        <TabelaConteudos conteudos={resultado.data} base={base} />
+        <TabelaConteudos
+          conteudos={resultado.data}
+          base={base}
+          lixeira={status === "lixeira"}
+        />
       )}
 
       <Paginacao
