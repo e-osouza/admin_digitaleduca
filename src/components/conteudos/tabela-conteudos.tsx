@@ -282,15 +282,31 @@ export function TabelaConteudos({
                     base={base}
                   />
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {podcast ? "Apresentador" : "Tipo"}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Categoria
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {podcast ? "Convidado" : "Instrutores"}
-                </th>
+                {podcast ? (
+                  <>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Apresentador
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Convidado
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Categoria
+                    </th>
+                  </>
+                ) : (
+                  <>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Tipo
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Categoria
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Instrutores
+                    </th>
+                  </>
+                )}
                 <th scope="col" className="px-4 py-3 font-medium">
                   <Ordenavel
                     rotulo="Criado em"
@@ -494,29 +510,56 @@ function Linha({
         </div>
       </td>
 
-      <td className="text-texto-2 max-w-48 truncate px-4 py-3 align-top">
-        {podcast ? apresentador : ROTULO_TIPO[conteudo.tipo]}
-      </td>
-
-      {/* Teto de largura: há subcategoria com quase 50 caracteres, e sem o
-          corte ela sozinha alargava a tabela até empurrar a data para fora. */}
-      <td className="text-texto-2 px-4 py-3 align-top">
-        <span className="flex max-w-48 flex-col">
-          <span className="truncate">{conteudo.categoria?.nome ?? "—"}</span>
-          {conteudo.subcategoria && (
-            <span
-              className="text-texto-3 truncate text-xs"
-              title={conteudo.subcategoria.nome}
-            >
-              {conteudo.subcategoria.nome}
+      {(() => {
+        /* Teto de largura na categoria: há subcategoria com quase 50
+           caracteres, e sem o corte ela sozinha alargava a tabela até
+           empurrar a data para fora. */
+        const celCategoria = (
+          <td className="text-texto-2 px-4 py-3 align-top">
+            <span className="flex max-w-48 flex-col">
+              <span className="truncate">
+                {conteudo.categoria?.nome ?? "—"}
+              </span>
+              {conteudo.subcategoria && (
+                <span
+                  className="text-texto-3 truncate text-xs"
+                  title={conteudo.subcategoria.nome}
+                >
+                  {conteudo.subcategoria.nome}
+                </span>
+              )}
             </span>
-          )}
-        </span>
-      </td>
+          </td>
+        );
 
-      <td className="text-texto-2 max-w-56 truncate px-4 py-3 align-top">
-        {podcast ? convidados : instrutores || "—"}
-      </td>
+        const celApresentadorOuTipo = (
+          <td className="text-texto-2 max-w-48 truncate px-4 py-3 align-top">
+            {podcast ? apresentador : ROTULO_TIPO[conteudo.tipo]}
+          </td>
+        );
+
+        const celConvidadoOuInstrutores = (
+          <td className="text-texto-2 max-w-56 truncate px-4 py-3 align-top">
+            {podcast ? convidados : instrutores || "—"}
+          </td>
+        );
+
+        /* Podcast: Apresentador, Convidado, Categoria (categoria por último).
+           Demais: Tipo, Categoria, Instrutores. */
+        return podcast ? (
+          <>
+            {celApresentadorOuTipo}
+            {celConvidadoOuInstrutores}
+            {celCategoria}
+          </>
+        ) : (
+          <>
+            {celApresentadorOuTipo}
+            {celCategoria}
+            {celConvidadoOuInstrutores}
+          </>
+        );
+      })()}
 
       <td className="text-texto-3 px-4 py-3 align-top whitespace-nowrap">
         {DATA.format(new Date(conteudo.createdAt))}
