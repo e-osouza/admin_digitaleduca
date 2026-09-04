@@ -80,12 +80,18 @@ export function TabelaConteudos({
   conteudos,
   base = "/conteudos",
   lixeira = false,
+  podcast = false,
 }: {
   conteudos: ConteudoBusca[];
   /** Rota da listagem — os links de ordenação escrevem nela. */
   base?: string;
   /** Aba Lixeira: troca as ações por Restaurar / Excluir definitivamente. */
   lixeira?: boolean;
+  /**
+   * Tela de podcasts: troca as colunas — sem "Tipo", "Instrutores" vira
+   * "Convidado" (texto) e entra a coluna "Apresentador".
+   */
+  podcast?: boolean;
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -277,13 +283,13 @@ export function TabelaConteudos({
                   />
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
-                  Tipo
+                  {podcast ? "Apresentador" : "Tipo"}
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
                   Categoria
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
-                  Instrutores
+                  {podcast ? "Convidado" : "Instrutores"}
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
                   <Ordenavel
@@ -306,6 +312,7 @@ export function TabelaConteudos({
                   marcado={selecionados.includes(conteudo.id)}
                   aoMarcar={() => alternar(conteudo.id)}
                   lixeira={lixeira}
+                  podcast={podcast}
                 />
               ))}
             </tbody>
@@ -341,16 +348,20 @@ function Linha({
   marcado,
   aoMarcar,
   lixeira = false,
+  podcast = false,
 }: {
   conteudo: ConteudoBusca;
   marcado: boolean;
   aoMarcar: () => void;
   lixeira?: boolean;
+  podcast?: boolean;
 }) {
   const router = useRouter();
   const [processando, comecarTransicao] = useTransition();
   const miniatura = conteudo.thumbnailMobile ?? conteudo.thumbnailDesktop;
   const instrutores = conteudo.instrutores.map((i) => i.nome).join(", ");
+  const convidados = conteudo.convidados?.trim() || "—";
+  const apresentador = conteudo.apresentador?.trim() || "—";
 
   function agir(acao: () => Promise<{ ok: boolean }>) {
     comecarTransicao(async () => {
@@ -483,8 +494,8 @@ function Linha({
         </div>
       </td>
 
-      <td className="text-texto-2 px-4 py-3 align-top">
-        {ROTULO_TIPO[conteudo.tipo]}
+      <td className="text-texto-2 max-w-48 truncate px-4 py-3 align-top">
+        {podcast ? apresentador : ROTULO_TIPO[conteudo.tipo]}
       </td>
 
       {/* Teto de largura: há subcategoria com quase 50 caracteres, e sem o
@@ -504,7 +515,7 @@ function Linha({
       </td>
 
       <td className="text-texto-2 max-w-56 truncate px-4 py-3 align-top">
-        {instrutores || "—"}
+        {podcast ? convidados : instrutores || "—"}
       </td>
 
       <td className="text-texto-3 px-4 py-3 align-top whitespace-nowrap">

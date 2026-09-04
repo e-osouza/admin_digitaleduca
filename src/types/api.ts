@@ -406,6 +406,10 @@ export interface ConteudoBusca {
   subcategoria: { id: number; nome: string } | null;
   instrutores: Pick<Instrutor, "id" | "nome" | "avatar" | "formacao">[];
   tags: { id: number; nome: string }[];
+  /** Podcast: apresentador (texto livre). Ausente/null nos demais tipos. */
+  apresentador?: string | null;
+  /** Podcast: convidados (texto livre, separados por vírgula). */
+  convidados?: string | null;
 }
 
 /**

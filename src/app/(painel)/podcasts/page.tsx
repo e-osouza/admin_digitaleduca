@@ -107,6 +107,7 @@ export default async function PaginaPodcasts({
           conteudos={resultado.data}
           base="/podcasts"
           lixeira={status === "lixeira"}
+          podcast
         />
       )}
 
