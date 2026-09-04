@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AvisoAcao } from "@/components/aviso-acao";
 import { ListaPlanos } from "@/components/planos/lista-planos";
 import { plural } from "@/lib/formato";
 import { listarPlanos, resumoAssinaturas } from "@/lib/queries";
@@ -44,7 +43,6 @@ export default async function PaginaPlanos() {
         </Link>
       </div>
 
-      <AvisoAcao />
 
       <ListaPlanos planos={planos} assinantes={assinantes} />
 

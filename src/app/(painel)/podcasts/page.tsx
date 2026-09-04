@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AvisoAcao } from "@/components/aviso-acao";
 import { AbasStatus } from "@/components/conteudos/abas-status";
 import { BotaoEsvaziarLixeira } from "@/components/conteudos/botao-esvaziar-lixeira";
 import { TabelaConteudos } from "@/components/conteudos/tabela-conteudos";
@@ -77,7 +76,6 @@ export default async function PaginaPodcasts({
         </Link>
       </div>
 
-      <AvisoAcao />
 
       {resultado.contadores && (
         <AbasStatus

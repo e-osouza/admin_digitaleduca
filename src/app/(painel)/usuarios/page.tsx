@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AvisoAcao } from "@/components/aviso-acao";
 import { AbasStatus } from "@/components/conteudos/abas-status";
 import { FiltrosSimples } from "@/components/filtros-simples";
 import { Paginacao } from "@/components/paginacao";
@@ -81,7 +80,6 @@ export default async function PaginaUsuarios({
         </Link>
       </div>
 
-      <AvisoAcao />
 
       <AbasStatus
         abas={[

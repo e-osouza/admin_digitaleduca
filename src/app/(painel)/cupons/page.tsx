@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AvisoAcao } from "@/components/aviso-acao";
 import {
   TabelaCupons,
   type CupomNaTela,
@@ -97,7 +96,6 @@ export default async function PaginaCupons({
         </Link>
       </div>
 
-      <AvisoAcao />
 
       {/*
         As abas são de SITUAÇÃO REAL, não da coluna `ativo` — "Expirado" e
