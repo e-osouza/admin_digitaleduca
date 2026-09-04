@@ -12,7 +12,7 @@ import {
   restaurarConteudo,
   restaurarEmLote,
 } from "@/app/(painel)/conteudos/acoes";
-import { ROTULO_TIPO, rotaDeEdicao } from "@/lib/tipos";
+import { rotaDeEdicao } from "@/lib/tipos";
 import type { ConteudoBusca } from "@/types/api";
 
 const DATA = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -297,9 +297,6 @@ export function TabelaConteudos({
                 ) : (
                   <>
                     <th scope="col" className="px-4 py-3 font-medium">
-                      Tipo
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
                       Categoria
                     </th>
                     <th scope="col" className="px-4 py-3 font-medium">
@@ -532,12 +529,6 @@ function Linha({
           </td>
         );
 
-        const celApresentadorOuTipo = (
-          <td className="text-texto-2 max-w-48 truncate px-4 py-3 align-top">
-            {podcast ? apresentador : ROTULO_TIPO[conteudo.tipo]}
-          </td>
-        );
-
         const celConvidadoOuInstrutores = (
           <td className="text-texto-2 max-w-56 truncate px-4 py-3 align-top">
             {podcast ? convidados : instrutores || "—"}
@@ -545,16 +536,18 @@ function Linha({
         );
 
         /* Podcast: Apresentador, Convidado, Categoria (categoria por último).
-           Demais: Tipo, Categoria, Instrutores. */
+           Demais tipos têm tela por tipo, então a coluna Tipo não entra:
+           Categoria, Instrutores. */
         return podcast ? (
           <>
-            {celApresentadorOuTipo}
+            <td className="text-texto-2 max-w-48 truncate px-4 py-3 align-top">
+              {apresentador}
+            </td>
             {celConvidadoOuInstrutores}
             {celCategoria}
           </>
         ) : (
           <>
-            {celApresentadorOuTipo}
             {celCategoria}
             {celConvidadoOuInstrutores}
           </>
