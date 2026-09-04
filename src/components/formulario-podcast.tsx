@@ -19,8 +19,7 @@ import {
   CampoTags,
   Secao,
 } from "@/components/campos-formulario";
-import { SeletorPessoas } from "@/components/seletor-pessoas";
-import { idsMarcados, paraData, separarTags } from "@/lib/dados-formulario";
+import { paraData, separarTags } from "@/lib/dados-formulario";
 import type {
   Categoria,
   ConteudoAdmin,
@@ -126,11 +125,13 @@ export function FormularioPodcast({
      * antigos). Por isso devolvemos os atuais intactos: a tela não os edita,
      * mas também não os destrói.
      */
+    /*
+     * Convidados agora é TEXTO livre (campo `convidados`), não mais vínculo com
+     * Instrutor. Mantemos só os vínculos INSTRUTOR legados; enviar `instrutorIds`
+     * faz o backend recriar só eles, limpando de quebra os antigos CONVIDADO —
+     * que já foram migrados para o texto. Não mandamos `convidadoIds`.
+     */
     dados.delete("convidadoIds");
-    dados.set(
-      "convidadoIds",
-      JSON.stringify(idsMarcados(formulario, "convidadoIds")),
-    );
     dados.set("instrutorIds", JSON.stringify(porPapel("INSTRUTOR")));
 
     const tagsCruas = String(dados.get("tagsTexto") ?? "");
@@ -323,12 +324,16 @@ export function FormularioPodcast({
           />
         </Campo>
 
-        <Campo rotulo="Convidados">
-          <SeletorPessoas
-            nome="convidadoIds"
-            pessoas={instrutores}
-            selecionadosIniciais={porPapel("CONVIDADO")}
-            vazio="Nenhuma pessoa cadastrada ainda. Cadastre em Instrutores."
+        <Campo
+          rotulo="Convidados"
+          ajuda="Nomes de quem participa, separados por vírgula."
+        >
+          <input
+            name="convidados"
+            autoComplete="off"
+            placeholder="Ex.: João Silva, Maria Souza"
+            defaultValue={podcast?.convidados ?? ""}
+            className={CONTROLE}
           />
         </Campo>
       </Secao>

@@ -31,6 +31,7 @@ const CAMPOS_TEXTO = [
   "gratuitoTipo",
   "gratuitoAte",
   "apresentador",
+  "convidados",
   "publicado",
   // URI de um teaser já enviado ao Vimeo (upload no ato da seleção).
   "videoIntrodutorioUrl",

@@ -197,6 +197,8 @@ export interface Conteudo {
   publicado: boolean;
   /** Nome de quem apresenta (podcast). Texto livre, não é vínculo. */
   apresentador: string | null;
+  /** Convidados do episódio (podcast). Texto livre, separados por vírgula. */
+  convidados: string | null;
   categoriaId: number;
   subcategoriaId: number;
   vimeoFolderUri: string | null;
